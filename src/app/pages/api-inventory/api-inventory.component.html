@@ -1,0 +1,206 @@
+<div class="inventory-container">
+
+  <!-- ══════════════════════════════════════
+       HEADER
+       ══════════════════════════════════════ -->
+  <div class="inventory-header">
+    <div class="inventory-header-left">
+      <div class="inventory-title-row">
+        <i class="pi pi-server" style="color:#c042ff;font-size:1.2rem"></i>
+        <h1 class="inventory-title">API Inventory</h1>
+      </div>
+      <p class="inventory-subtitle">Catalogue des specs auditées · Qdrant Vector Store · HITL RL</p>
+    </div>
+    <div class="inventory-header-right">
+      <div class="inv-stat-pill" *ngIf="totalApis !== null">
+        <i class="pi pi-database" style="font-size:0.75rem"></i>
+        {{ totalApis }} APIs indexées
+      </div>
+      <button class="inv-refresh-btn" (click)="loadInventory()">
+        <i class="pi pi-refresh" [class.pi-spin]="loadingInventory"></i>
+        Actualiser
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       LAYOUT 2 COLONNES
+       ══════════════════════════════════════ -->
+  <div class="inventory-layout">
+
+    <!-- ─── Colonne gauche : liste APIs ─── -->
+    <div class="inventory-left">
+
+      <!-- Barre recherche + filtre -->
+      <div class="inv-search-bar">
+        <div class="inv-search-input-wrap">
+          <i class="pi pi-search inv-search-icon"></i>
+          <input
+            type="text"
+            class="inv-search-input"
+            placeholder="Chercher une API..."
+            [value]="searchQuery"
+            (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <select
+          class="inv-filter-select"
+          [value]="statusFilter"
+          (change)="onStatusChange($any($event.target).value)">
+          <option value="">Tous les statuts</option>
+          <option value="PASSED">PASSED</option>
+          <option value="FAILED">FAILED</option>
+          <option value="HUMAN_APPROVED">APPROUVÉ</option>
+          <option value="HUMAN_REJECTED">REJETÉ</option>
+          <option value="PENDING">PENDING</option>
+        </select>
+      </div>
+
+      <!-- Loader -->
+      <div class="inv-loading" *ngIf="loadingInventory">
+        <i class="pi pi-spin pi-spinner"></i> Chargement...
+      </div>
+
+      <!-- Vide -->
+      <div class="inv-empty" *ngIf="!loadingInventory && filteredApis.length === 0">
+        <i class="pi pi-inbox" style="font-size:2rem;color:#484f58"></i>
+        <span>Aucune API trouvée</span>
+      </div>
+
+      <!-- Liste APIs -->
+      <div class="inv-api-list" *ngIf="!loadingInventory && filteredApis.length > 0">
+        <div class="inv-api-card"
+             *ngFor="let api of filteredApis"
+             [class.selected]="selectedApi?.id === api.id"
+             (click)="selectApi(api)">
+
+          <div class="inv-api-row1">
+            <span class="inv-api-name">{{ api.spec_id }}</span>
+            <span class="inv-status-badge"
+                  [class.status-passed]="api.status === 'PASSED' || api.status === 'HUMAN_APPROVED'"
+                  [class.status-failed]="api.status === 'FAILED'"
+                  [class.status-pending]="api.status === 'PENDING'"
+                  [class.status-rejected]="api.status === 'HUMAN_REJECTED'">
+              {{ api.status }}
+            </span>
+          </div>
+
+          <div class="inv-api-row2">
+            <span class="inv-api-source">{{ api.source }}</span>
+            <span class="inv-api-score" [style.color]="getScoreColor(api.score)">
+              {{ api.score !== null ? api.score + '/100' : '—' }}
+            </span>
+            <span class="inv-api-date">{{ formatDate(api.timestamp) }}</span>
+          </div>
+
+          <div class="inv-score-bar" *ngIf="api.score !== null">
+            <div class="inv-score-fill"
+                 [style.width]="api.score + '%'"
+                 [style.background]="getScoreColor(api.score)">
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ─── Colonne droite : détail + Qdrant ─── -->
+    <div class="inventory-right">
+
+      <!-- Détail API sélectionnée -->
+      <div class="inv-detail-card" *ngIf="selectedApi">
+
+        <div class="inv-detail-header">
+          <div class="inv-detail-icon"><i class="pi pi-file-edit"></i></div>
+          <div>
+            <div class="inv-detail-name">{{ selectedApi.spec_id }}</div>
+            <div class="inv-detail-meta">
+              ID #{{ selectedApi.id }} · {{ selectedApi.source }} · {{ formatDate(selectedApi.timestamp) }}
+            </div>
+          </div>
+          <span class="inv-detail-score" [style.color]="getScoreColor(selectedApi.score)">
+            {{ selectedApi.score !== null ? selectedApi.score : '—' }}/100
+          </span>
+        </div>
+
+        <!-- Scores IA -->
+        <div class="inv-ai-scores" *ngIf="selectedApi.ai_analysis?.ia_eval">
+          <div class="inv-ai-score-row">
+            <span class="inv-ai-label">Design</span>
+            <div class="inv-ai-bar">
+              <div class="inv-ai-fill" style="background:#c042ff"
+                   [style.width]="selectedApi.ai_analysis.ia_eval.design_score + '%'"></div>
+            </div>
+            <span class="inv-ai-val">{{ selectedApi.ai_analysis.ia_eval.design_score }}</span>
+          </div>
+          <div class="inv-ai-score-row">
+            <span class="inv-ai-label">Sécurité</span>
+            <div class="inv-ai-bar">
+              <div class="inv-ai-fill" style="background:#f59e0b"
+                   [style.width]="selectedApi.ai_analysis.ia_eval.security_score + '%'"></div>
+            </div>
+            <span class="inv-ai-val">{{ selectedApi.ai_analysis.ia_eval.security_score }}</span>
+          </div>
+          <div class="inv-ai-score-row">
+            <span class="inv-ai-label">Chairman</span>
+            <div class="inv-ai-bar">
+              <div class="inv-ai-fill" style="background:#22c55e"
+                   [style.width]="selectedApi.ai_analysis.ia_eval.chairman_score + '%'"></div>
+            </div>
+            <span class="inv-ai-val">{{ selectedApi.ai_analysis.ia_eval.chairman_score }}</span>
+          </div>
+          <div class="inv-rl-score" *ngIf="selectedApi.ai_analysis?.rl_final_score">
+            <span class="inv-rl-label">Score RL HITL</span>
+            <span class="inv-rl-val" [style.color]="getScoreColor(selectedApi.ai_analysis.rl_final_score)">
+              {{ selectedApi.ai_analysis.rl_final_score }}/100
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions HITL -->
+        <div class="inv-hitl-actions" *ngIf="selectedApi.status === 'FAILED'">
+          <div class="inv-hitl-title">Actions HITL</div>
+          <div class="inv-hitl-btns">
+            <button class="inv-approve-btn" (click)="approveApi(selectedApi)">
+              <i class="pi pi-check-circle"></i> Approuver
+            </button>
+            <button class="inv-reject-btn" (click)="rejectApi(selectedApi)">
+              <i class="pi pi-times-circle"></i> Rejeter
+            </button>
+          </div>
+          <div class="inv-feedback-row">
+            <span class="inv-feedback-label">Feedback experts :</span>
+            <div class="inv-expert-btns">
+              <button class="inv-fb-btn pos" (click)="sendFeedback(selectedApi, 'design',   1)" title="+1 Design">D+</button>
+              <button class="inv-fb-btn neg" (click)="sendFeedback(selectedApi, 'design',  -1)" title="-1 Design">D-</button>
+              <button class="inv-fb-btn pos" (click)="sendFeedback(selectedApi, 'security',  1)" title="+1 Security">S+</button>
+              <button class="inv-fb-btn neg" (click)="sendFeedback(selectedApi, 'security', -1)" title="-1 Security">S-</button>
+              <button class="inv-fb-btn pos" (click)="sendFeedback(selectedApi, 'chairman',  1)" title="+1 Chairman">C+</button>
+              <button class="inv-fb-btn neg" (click)="sendFeedback(selectedApi, 'chairman', -1)" title="-1 Chairman">C-</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message feedback -->
+        <div class="inv-feedback-msg" *ngIf="feedbackMessage"
+             [class.msg-success]="feedbackSuccess"
+             [class.msg-error]="!feedbackSuccess">
+          {{ feedbackMessage }}
+        </div>
+
+      </div>
+
+      <!-- Pas de sélection -->
+      <div class="inv-no-selection" *ngIf="!selectedApi">
+        <i class="pi pi-mouse" style="font-size:1.5rem;color:#484f58"></i>
+        <span>Sélectionnez une API pour voir le détail</span>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           QDRANT PANEL
+           ══════════════════════════════════════ -->
+      <app-qdrant-panel></app-qdrant-panel>
+
+    </div>
+  </div>
+</div>

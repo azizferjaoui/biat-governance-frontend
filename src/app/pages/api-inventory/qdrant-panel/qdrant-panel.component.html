@@ -1,0 +1,324 @@
+<div class="qdrant-panel">
+
+  <!-- ══════════════════════════════════════
+       HEADER
+       ══════════════════════════════════════ -->
+  <div class="qp-header">
+    <div class="qp-header-left">
+      <div class="qp-icon">
+        <i class="pi pi-database"></i>
+      </div>
+      <div>
+        <div class="qp-title">Qdrant Vector Store</div>
+        <div class="qp-subtitle">
+          {{ collectionInfo?.vectors_count ?? '...' }} vecteurs ·
+          all-MiniLM-L6-v2 · {{ collectionInfo?.dimension ?? 384 }}d
+        </div>
+      </div>
+    </div>
+    <button class="qp-refresh-btn" (click)="loadInfo(); loadAuditStats()" title="Actualiser">
+      <i class="pi pi-refresh" [class.pi-spin]="loadingInfo"></i>
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       ONGLETS
+       ══════════════════════════════════════ -->
+  <div class="qp-tabs">
+    <button [class.active]="activeTab === 'stats'" (click)="selectTab('stats')">
+      <i class="pi pi-chart-bar"></i> Stats
+    </button>
+    <button [class.active]="activeTab === 'logs'" (click)="selectTab('logs')">
+      <i class="pi pi-list"></i> Audit
+    </button>
+    <button [class.active]="activeTab === 'check'" (click)="selectTab('check')">
+      <i class="pi pi-search"></i> Tester
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       ONGLET STATS
+       ══════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'stats'">
+
+    <!-- Stat cards -->
+    <div class="qp-stats-row">
+      <div class="qp-stat-card">
+        <span class="qp-stat-value" style="color:#c042ff">
+          {{ collectionInfo?.vectors_count ?? 0 }}
+        </span>
+        <span class="qp-stat-label">Vecteurs</span>
+      </div>
+      <div class="qp-stat-card">
+        <span class="qp-stat-value" style="color:#00f2ff">
+          {{ collectionInfo?.dimension ?? 384 }}
+        </span>
+        <span class="qp-stat-label">Dimensions</span>
+      </div>
+      <div class="qp-stat-card">
+        <span class="qp-stat-value"
+              [style.color]="collectionInfo?.status === 'green' ? '#22c55e' : '#f59e0b'">
+          {{ collectionInfo?.status ?? '...' }}
+        </span>
+        <span class="qp-stat-label">Status</span>
+      </div>
+    </div>
+
+    <!-- Seuils -->
+    <div class="qp-thresholds-box">
+      <div class="qp-thresholds-title">Seuils de similarité</div>
+
+      <div class="qp-threshold-row">
+        <div class="qp-th-dot" style="background:#f43f5e"></div>
+        <span class="qp-th-label">BLOCK</span>
+        <div class="qp-th-bar-wrap">
+          <div class="qp-th-bar">
+            <div class="qp-th-fill" style="background:#f43f5e"
+                 [style.width]="getThresholdPercent(thresholds.block) + '%'"></div>
+          </div>
+        </div>
+        <span class="qp-th-val">≥ {{ getThresholdPercent(thresholds.block) }}%</span>
+        <span class="qp-th-desc">Doublon bloqué</span>
+      </div>
+
+      <div class="qp-threshold-row">
+        <div class="qp-th-dot" style="background:#f59e0b"></div>
+        <span class="qp-th-label">WARN</span>
+        <div class="qp-th-bar-wrap">
+          <div class="qp-th-bar">
+            <div class="qp-th-fill" style="background:#f59e0b"
+                 [style.width]="getThresholdPercent(thresholds.warn) + '%'"></div>
+          </div>
+        </div>
+        <span class="qp-th-val">≥ {{ getThresholdPercent(thresholds.warn) }}%</span>
+        <span class="qp-th-desc">Warning similaire</span>
+      </div>
+
+      <div class="qp-threshold-row">
+        <div class="qp-th-dot" style="background:#3b82f6"></div>
+        <span class="qp-th-label">RAG</span>
+        <div class="qp-th-bar-wrap">
+          <div class="qp-th-bar">
+            <div class="qp-th-fill" style="background:#3b82f6"
+                 [style.width]="getThresholdPercent(thresholds.rag) + '%'"></div>
+          </div>
+        </div>
+        <span class="qp-th-val">≥ {{ getThresholdPercent(thresholds.rag) }}%</span>
+        <span class="qp-th-desc">Contexte LLM</span>
+      </div>
+    </div>
+
+    <!-- Audit stats résumé -->
+    <div class="qp-audit-summary" *ngIf="auditStats">
+      <div class="qp-audit-summary-title">
+        Opérations (30j) — {{ auditStats.total_logs }} total
+      </div>
+      <div class="qp-chips-row">
+        <span class="qp-chip" *ngFor="let s of auditStats.stats"
+              [style.color]="getResultColor(s.result)"
+              [style.border-color]="getResultColor(s.result) + '50'"
+              [style.background]="getResultColor(s.result) + '12'">
+          {{ s.result }} · {{ s.count }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Danger zone -->
+    <div class="qp-danger-zone">
+      <button class="qp-danger-btn" (click)="resetCollection()">
+        <i class="pi pi-trash"></i> Reset collection (irréversible)
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       ONGLET AUDIT LOGS
+       ══════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'logs'">
+
+    <div class="qp-logs-loading" *ngIf="loadingLogs">
+      <i class="pi pi-spin pi-spinner"></i> Chargement des logs...
+    </div>
+
+    <div class="qp-logs-empty" *ngIf="!loadingLogs && auditLogs.length === 0">
+      Aucun log disponible
+    </div>
+
+    <div class="qp-logs-list custom-scroll" *ngIf="!loadingLogs && auditLogs.length > 0">
+      <div class="qp-log-item" *ngFor="let log of auditLogs">
+
+        <div class="qp-log-row1">
+          <span class="qp-log-op-badge">{{ log.operation }}</span>
+          <span class="qp-log-result-badge"
+                [style.color]="getResultColor(log.result)"
+                [style.background]="getResultColor(log.result) + '18'">
+            {{ log.result }}
+          </span>
+          <span class="qp-log-date">{{ formatDate(log.created_at) }}</span>
+        </div>
+
+        <div class="qp-log-row2" *ngIf="log.api_name || log.similar_to || log.similarity !== null">
+          <span class="qp-log-api" *ngIf="log.api_name">
+            <i class="pi pi-file" style="font-size:0.6rem"></i> {{ log.api_name }}
+          </span>
+          <span class="qp-log-similar" *ngIf="log.similar_to && log.similar_to !== log.api_name">
+            → {{ log.similar_to }}
+          </span>
+          <span class="qp-log-sim" *ngIf="log.similarity !== null">
+            {{ (log.similarity * 100).toFixed(0) }}%
+          </span>
+          <span class="qp-log-rag" *ngIf="log.rag_count !== null && log.rag_count > 0">
+            RAG ×{{ log.rag_count }}
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+    <button class="qp-reload-btn" (click)="loadLogs()">
+      <i class="pi pi-refresh"></i> Recharger
+    </button>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       ONGLET TESTER SPEC
+       ══════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'check'">
+
+    <div class="qp-check-hint">
+      Collez un YAML OpenAPI pour tester la déduplication sur les 3 niveaux.
+    </div>
+
+    <textarea
+      class="qp-textarea custom-scroll"
+      [value]="checkSpecText" (input)="checkSpecText = $any($event.target).value"
+      placeholder="openapi: 3.0.0&#10;info:&#10;  title: Mon API&#10;  version: 1.0.0&#10;paths: {}">
+    </textarea>
+
+    <button class="qp-check-btn"
+            (click)="checkDuplicate()"
+            [disabled]="checkLoading || !checkSpecText.trim()">
+      <i class="pi"
+         [class.pi-spin]="checkLoading"
+         [class.pi-spinner]="checkLoading"
+         [class.pi-search]="!checkLoading"></i>
+      {{ checkLoading ? 'Analyse vectorielle...' : 'Vérifier doublon' }}
+    </button>
+
+    <!-- Résultat check -->
+    <div class="qp-check-result" *ngIf="checkResult"
+         [style.border-color]="getLevelColor(checkResult.level) + '50'">
+
+      <!-- Badge niveau global -->
+      <div class="qp-result-level-badge"
+           [style.color]="getLevelColor(checkResult.level)"
+           [style.background]="getLevelColor(checkResult.level) + '18'">
+        <i class="pi"
+           [class.pi-ban]="checkResult.level === 'BLOCKED'"
+           [class.pi-exclamation-triangle]="checkResult.level === 'WARNING'"
+           [class.pi-info-circle]="checkResult.level === 'RAG_MATCH'"
+           [class.pi-check-circle]="checkResult.level === 'NONE'">
+        </i>
+        {{ getLevelLabel(checkResult.level) }}
+      </div>
+
+      <!-- 3 niveaux de similarité -->
+      <div class="qp-levels-grid">
+
+        <!-- BLOCK -->
+        <div class="qp-level-block"
+             [class.level-active]="checkResult.block?.is_duplicate">
+          <div class="qp-level-header">
+            <span class="qp-level-dot" style="background:#f43f5e"></span>
+            <span class="qp-level-name">BLOCK ≥ 98%</span>
+            <span class="qp-level-status"
+                  [style.color]="checkResult.block?.is_duplicate ? '#f43f5e' : '#22c55e'">
+              {{ checkResult.block?.is_duplicate ? 'DÉCLENCHÉ' : 'OK' }}
+            </span>
+          </div>
+          <div class="qp-level-bar-row">
+            <div class="qp-level-bar">
+              <div class="qp-level-fill" style="background:#f43f5e"
+                   [style.width]="getSimPercent(checkResult.block?.similarity) + '%'"></div>
+              <div class="qp-level-threshold-mark" style="left:98%"></div>
+            </div>
+            <span class="qp-level-pct">
+              {{ checkResult.block?.is_duplicate
+                 ? (checkResult.block.similarity * 100).toFixed(1) + '%'
+                 : '—' }}
+            </span>
+          </div>
+          <div class="qp-level-meta" *ngIf="checkResult.block?.is_duplicate">
+            <i class="pi pi-file" style="font-size:0.6rem;color:#8b949e"></i>
+            <span>{{ checkResult.block.similar_api }}</span>
+            <span class="qp-hash-badge" [class.hash-match]="checkResult.block?.hash_match">
+              hash {{ checkResult.block?.hash_match ? 'identique ✓' : 'différent' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- WARN -->
+        <div class="qp-level-block"
+             [class.level-active]="checkResult.warn?.is_duplicate && !checkResult.block?.is_duplicate">
+          <div class="qp-level-header">
+            <span class="qp-level-dot" style="background:#f59e0b"></span>
+            <span class="qp-level-name">WARN ≥ 80%</span>
+            <span class="qp-level-status"
+                  [style.color]="checkResult.warn?.is_duplicate ? '#f59e0b' : '#22c55e'">
+              {{ checkResult.warn?.is_duplicate ? 'SIMILAIRE' : 'OK' }}
+            </span>
+          </div>
+          <div class="qp-level-bar-row">
+            <div class="qp-level-bar">
+              <div class="qp-level-fill" style="background:#f59e0b"
+                   [style.width]="getSimPercent(checkResult.warn?.similarity) + '%'"></div>
+              <div class="qp-level-threshold-mark" style="left:80%"></div>
+            </div>
+            <span class="qp-level-pct">
+              {{ checkResult.warn?.is_duplicate
+                 ? (checkResult.warn.similarity * 100).toFixed(1) + '%'
+                 : '—' }}
+            </span>
+          </div>
+          <div class="qp-level-meta" *ngIf="checkResult.warn?.is_duplicate">
+            <span>{{ checkResult.warn.similar_api }}</span>
+          </div>
+        </div>
+
+        <!-- RAG -->
+        <div class="qp-level-block"
+             [class.level-active]="checkResult.rag?.is_duplicate && !checkResult.warn?.is_duplicate">
+          <div class="qp-level-header">
+            <span class="qp-level-dot" style="background:#3b82f6"></span>
+            <span class="qp-level-name">RAG ≥ 70%</span>
+            <span class="qp-level-status"
+                  [style.color]="checkResult.rag?.is_duplicate ? '#3b82f6' : '#8b949e'">
+              {{ checkResult.rag?.is_duplicate ? 'CONTEXTE' : 'AUCUN' }}
+            </span>
+          </div>
+          <div class="qp-level-bar-row">
+            <div class="qp-level-bar">
+              <div class="qp-level-fill" style="background:#3b82f6"
+                   [style.width]="getSimPercent(checkResult.rag?.similarity) + '%'"></div>
+              <div class="qp-level-threshold-mark" style="left:70%"></div>
+            </div>
+            <span class="qp-level-pct">
+              {{ checkResult.rag?.is_duplicate
+                 ? (checkResult.rag.similarity * 100).toFixed(1) + '%'
+                 : '—' }}
+            </span>
+          </div>
+          <div class="qp-level-meta" *ngIf="checkResult.rag?.is_duplicate">
+            <span>{{ checkResult.rag.similar_api }}</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

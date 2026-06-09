@@ -1,0 +1,40 @@
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* La sidebar fait 260px, donc on décale le contenu */
+  margin-left: 260px; 
+}
+
+.page-container {
+  padding: 30px;
+  /* Animation fluide lors du changement de page */
+  animation: fadeIn 0.5s ease;
+}
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #0a0e17;
+}
+.app-main {
+  flex: 1;
+  margin-left: 220px;   /* largeur sidebar */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 0;
+}
+.app-content {
+  flex: 1;
+  overflow: auto;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

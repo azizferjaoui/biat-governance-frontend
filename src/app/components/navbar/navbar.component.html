@@ -1,0 +1,52 @@
+<div class="navbar">
+
+  <!-- Gauche : recherche -->
+  <div class="navbar-left">
+    <div class="navbar-search-wrap">
+      <i class="pi pi-search navbar-search-icon"></i>
+      <input type="text" class="navbar-search" placeholder="Search API inventory..."/>
+    </div>
+  </div>
+
+  <!-- Droite : status + user -->
+  <div class="navbar-right">
+
+    <!-- Pipeline status -->
+    <div class="navbar-pipeline-status">
+      <div class="nps-dot"></div>
+      <span class="nps-label">Pipeline Status :</span>
+      <span class="nps-value">Active</span>
+    </div>
+
+    <!-- Governance label -->
+    <div class="navbar-gov-label">Governance Admin</div>
+
+    <!-- User Keycloak -->
+    <div class="navbar-user" *ngIf="user">
+      <div class="nu-avatar"
+           [style.background]="isOwner() ? 'rgba(244,63,94,0.15)' : 'rgba(34,197,94,0.12)'"
+           [style.border-color]="isOwner() ? 'rgba(244,63,94,0.5)' : 'rgba(34,197,94,0.5)'">
+        {{user.username.substring(0,2).toUpperCase()}}
+      </div>
+      <div class="nu-info">
+        <span class="nu-name">{{user.username}}</span>
+        <span class="nu-role" [style.color]="isOwner() ? '#f43f5e' : '#22c55e'">
+          {{isOwner() ? 'Owner' : 'User'}}
+        </span>
+      </div>
+      <button class="nu-logout" (click)="logout()" title="Déconnexion">
+        <i class="pi pi-sign-out"></i>
+      </button>
+    </div>
+
+    <!-- Skeleton loading -->
+    <div class="navbar-user-skeleton" *ngIf="!user">
+      <div class="nus-avatar"></div>
+      <div class="nus-lines">
+        <div class="nus-line nus-line-1"></div>
+        <div class="nus-line nus-line-2"></div>
+      </div>
+    </div>
+
+  </div>
+</div>

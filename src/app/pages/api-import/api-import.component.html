@@ -1,0 +1,587 @@
+<div class="pipeline-container">
+  <div class="left-column">
+
+    <!-- ═══════════════════════
+         CARTE IMPORT
+         ═══════════════════════ -->
+    <div class="brutalist-card import-card" *ngIf="!auditTermine && !loading && !errorMessage">
+      <div class="banner">
+        <span class="banner-text">{{ importMode === 'url' ? 'OPENAPI URL' : 'LOCAL UPLOAD' }}</span>
+      </div>
+      <span class="card-title">Governance Engine</span>
+      <div class="mode-selector">
+        <button [class.active]="importMode === 'url'"  (click)="importMode = 'url'">OpenAPI URL</button>
+        <button [class.active]="importMode === 'file'" (click)="importMode = 'file'">Mon PC</button>
+      </div>
+      <div class="card-form">
+        <div *ngIf="importMode === 'url'" class="input-group">
+          <div class="url-input-wrapper">
+            <i class="pi pi-link url-icon"></i>
+            <input [value]="openApiUrl" (input)="openApiUrl = $any($event.target).value"
+                   placeholder="https://api.biat.com.tn/openapi.yaml"
+                   type="url" class="url-input" />
+          </div>
+          <div class="url-examples">
+            <span class="url-hint">Exemples :</span>
+            <span class="url-example" (click)="openApiUrl = 'https://petstore3.swagger.io/api/v3/openapi.json'">Petstore</span>
+            <span class="url-example-sep">·</span>
+            <span class="url-example" (click)="openApiUrl = 'https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.yaml'">OAI Sample</span>
+          </div>
+          <button (click)="onImportUrl()" class="btn-pipeline" [disabled]="loading || !openApiUrl">
+            <i class="pi pi-play"></i> Lancer l'Audit
+          </button>
+        </div>
+        <div *ngIf="importMode === 'file'" class="input-group">
+          <label class="custom-file-upload">
+            <input type="file" (change)="onFileSelected($event)" accept=".yaml,.json" />
+            <div class="upload-content">
+              <i class="pi pi-upload"></i>
+              <span>{{ selectedFileName || 'Sélectionner YAML / JSON' }}</span>
+            </div>
+          </label>
+          <button (click)="onUploadFile()" class="btn-pipeline" [disabled]="loading || !selectedFile">
+            <i class="pi pi-play"></i> Lancer l'Audit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════
+         LOADER
+         ═══════════════════════ -->
+    <div class="loader-container" *ngIf="loading">
+      <div class="loaders-row">
+        <div class="loader"><svg viewBox="0 0 80 80"><circle r="32" cy="40" cx="40"></circle></svg></div>
+        <div class="loader triangle"><svg viewBox="0 0 86 80"><polygon points="43 8 79 72 7 72"></polygon></svg></div>
+        <div class="loader"><svg viewBox="0 0 80 80"><rect height="64" width="64" y="8" x="8"></rect></svg></div>
+      </div>
+      <p class="loader-text">Analyse BIAT IT en cours...</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         RAPPORT D'AUDIT
+         ═══════════════════════════════════════════════ -->
+    <div class="card" *ngIf="auditTermine && !loading && !errorMessage && !showCorrectedYaml && !showFixWizard">
+      <div class="card__border"></div>
+
+      <!-- Stat cards -->
+      <div class="stats-row">
+        <div class="stat-card oai"   title="Violations OpenAPI"><p class="tip">{{ oaiViolations }}</p><p class="second-text">📋 OpenAPI</p></div>
+        <div class="stat-card ms"    title="Violations REST">    <p class="tip">{{ msViolations }}</p> <p class="second-text">🔷 REST</p></div>
+        <div class="stat-card biat"  title="Violations BIAT">    <p class="tip">{{ biatViolations }}</p><p class="second-text">🏦 BIAT</p></div>
+        <div class="stat-card owasp" title="Violations OWASP">   <p class="tip">{{ owaspViolations }}</p><p class="second-text">🔒 OWASP</p></div>
+        <div class="stat-card green" title="Score global">       <p class="tip">{{ qualityScore }}%</p><p class="second-text">Score</p></div>
+        <div class="stat-card purple" *ngIf="aiAnalyzed && aiScore !== null">
+          <p class="tip">{{ aiScore }}%</p><p class="second-text">Score IA</p>
+        </div>
+      </div>
+      <div class="category-legend">
+        <span class="cat-badge oai-badge">📋 OpenAPI {{ oaiViolations }}</span>
+        <span class="cat-badge ms-badge">🔷 REST {{ msViolations }}</span>
+        <span class="cat-badge biat-badge">🏦 BIAT {{ biatViolations }}</span>
+        <span class="cat-badge owasp-badge">🔒 OWASP {{ owaspViolations }}</span>
+        <span class="cat-badge warn-badge">⚠ {{ warningsCount }} warn</span>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           PIPELINE EN COURS
+           ═══════════════════════════════════════════════ -->
+      <div class="moe-pipeline" *ngIf="aiLoading && !aiAnalyzed">
+
+        <!-- Header pipeline -->
+        <div class="moe-header">
+          <div class="moe-header-left">
+            <div class="moe-live-dot"></div>
+            <span class="moe-title">Pipeline MoE — en cours</span>
+          </div>
+          <span class="moe-model-tag">openai/gpt-oss-120b-versatile</span>
+        </div>
+
+        <!-- Étape 0 : Qdrant -->
+        <div class="moe-step">
+          <div class="moe-step-track">
+            <div class="moe-step-node"
+                 [class.node-scanning]="qdrantStep === 'checking'"
+                 [class.node-ok]="qdrantStep === 'done' && qdrantLevel === 'NONE'"
+                 [class.node-rag]="qdrantStep === 'done' && qdrantLevel === 'RAG_ONLY'"
+                 [class.node-warn]="qdrantStep === 'done' && qdrantLevel === 'WARNING'"
+                 [class.node-block]="qdrantStep === 'done' && qdrantLevel === 'BLOCKED'">
+              <i class="pi" [class.pi-spin]="qdrantStep === 'checking'"
+                 [class.pi-spinner]="qdrantStep === 'checking'"
+                 [class.pi-database]="qdrantStep !== 'checking'"
+                 style="font-size:0.65rem"></i>
+            </div>
+            <div class="moe-step-line" [class.line-done]="qdrantStep === 'done'"></div>
+          </div>
+          <div class="moe-step-body">
+            <div class="moe-step-label-row">
+              <span class="moe-step-tag qdrant-tag">Qdrant Vector DB</span>
+              <span class="moe-step-name">Détection de doublons sémantiques</span>
+              <span class="moe-scanning-badge" *ngIf="qdrantStep === 'checking'">
+                <span class="scan-dot"></span> scan vectoriel...
+              </span>
+            </div>
+
+            <!-- Scan en cours : 3 seuils animés -->
+            <div class="moe-thresholds" *ngIf="qdrantStep === 'checking'">
+              <div class="threshold-row">
+                <div class="threshold-dot" style="background:#f43f5e"></div>
+                <span class="threshold-label">BLOCK</span>
+                <div class="threshold-bar"><div class="threshold-fill block-fill"></div></div>
+                <span class="threshold-pct">≥ 98%</span>
+              </div>
+              <div class="threshold-row">
+                <div class="threshold-dot" style="background:#f59e0b"></div>
+                <span class="threshold-label">WARN</span>
+                <div class="threshold-bar"><div class="threshold-fill warn-fill"></div></div>
+                <span class="threshold-pct">≥ 80%</span>
+              </div>
+              <div class="threshold-row">
+                <div class="threshold-dot" style="background:#3b82f6"></div>
+                <span class="threshold-label">RAG</span>
+                <div class="threshold-bar"><div class="threshold-fill rag-fill"></div></div>
+                <span class="threshold-pct">≥ 70%</span>
+              </div>
+            </div>
+
+            <!-- Résultat OK -->
+            <div class="moe-qdrant-ok" *ngIf="qdrantStep === 'done' && qdrantLevel === 'NONE'">
+              <i class="pi pi-check-circle" style="color:#22c55e;font-size:0.75rem"></i>
+              <span>Spec unique — aucun doublon détecté</span>
+              <span class="rag-badge" *ngIf="qdrantRagCount > 0">RAG ×{{ qdrantRagCount }}</span>
+            </div>
+
+            <!-- Résultat RAG -->
+            <div class="moe-qdrant-ok" *ngIf="qdrantStep === 'done' && qdrantLevel === 'RAG_ONLY'">
+              <i class="pi pi-info-circle" style="color:#3b82f6;font-size:0.75rem"></i>
+              <span>{{ qdrantRagCount }} API(s) similaires injectées dans le contexte LLM</span>
+            </div>
+
+            <!-- Résultat WARNING -->
+            <div class="moe-warning-card" *ngIf="qdrantStep === 'done' && qdrantLevel === 'WARNING'">
+              <div class="moe-warning-top">
+                <div class="moe-warning-icon"><i class="pi pi-exclamation-triangle"></i></div>
+                <div class="moe-warning-info">
+                  <span class="moe-warning-title">Spec similaire détectée</span>
+                  <span class="moe-warning-sub">L'audit continue — doublon potentiel signalé</span>
+                </div>
+                <div class="moe-warning-pct" [style.color]="getQdrantLevelColor()">
+                  {{ qdrantSimilarity ? (qdrantSimilarity * 100).toFixed(0) + '%' : '≥80%' }}
+                </div>
+              </div>
+              <div class="moe-warning-detail">
+                <i class="pi pi-file" style="font-size:0.6rem;color:#f59e0b;flex-shrink:0"></i>
+                <span>Similaire à</span>
+                <code class="moe-warning-api">{{ qdrantSimilarApi }}</code>
+                <span *ngIf="qdrantRagCount > 0" class="rag-badge blue">RAG ×{{ qdrantRagCount }}</span>
+              </div>
+              <div class="moe-sim-bar-row">
+                <div class="moe-sim-bar">
+                  <div class="moe-sim-fill" [style.width]="(qdrantSimilarity ? qdrantSimilarity * 100 : 85) + '%'"></div>
+                  <div class="moe-sim-marker" style="left:98%" title="BLOCK 98%"></div>
+                  <div class="moe-sim-marker warn" style="left:80%" title="WARN 80%"></div>
+                </div>
+                <span class="moe-sim-val">{{ qdrantSimilarity ? (qdrantSimilarity * 100).toFixed(1) + '%' : '—' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Experts MoE (visibles seulement si pas bloqué) -->
+        <ng-container *ngIf="!qdrantBlocked">
+
+          <!-- Étape 1 : Expert Design -->
+          <div class="moe-step">
+            <div class="moe-step-track">
+              <div class="moe-step-node node-running">
+                <i class="pi pi-palette" style="font-size:0.65rem"></i>
+              </div>
+              <div class="moe-step-line"></div>
+            </div>
+            <div class="moe-step-body">
+              <div class="moe-step-label-row">
+                <span class="moe-step-tag design-tag">Expert Design</span>
+                <span class="moe-step-name">Analyse OpenAPI + REST guidelines</span>
+                <span class="moe-running-badge"><span class="run-dot"></span> en cours</span>
+              </div>
+              <div class="moe-expert-chip">
+                <div class="expert-chip-dot purple"></div>
+                <span class="expert-chip-model">openai/gpt-oss-120b</span>
+                <span class="expert-chip-rag">RAG : specs BIAT validées (Qdrant)</span>
+                <span class="expert-chip-conf">conf → 0.0-1.0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Étape 2 : Expert Security -->
+          <div class="moe-step">
+            <div class="moe-step-track">
+              <div class="moe-step-node node-pending">
+                <i class="pi pi-shield" style="font-size:0.65rem"></i>
+              </div>
+              <div class="moe-step-line line-pending"></div>
+            </div>
+            <div class="moe-step-body pending-body">
+              <div class="moe-step-label-row">
+                <span class="moe-step-tag security-tag">Expert Sécurité</span>
+                <span class="moe-step-name">OWASP + politiques OPA BIAT</span>
+              </div>
+              <div class="moe-expert-chip chip-dim">
+                <div class="expert-chip-dot coral"></div>
+                <span class="expert-chip-model dim">openai/gpt-oss-120b</span>
+                <span class="expert-chip-rag dim">RAG : OWASP Top 10 + règles OPA</span>
+                <span class="expert-chip-conf dim">conf → 0.0-1.0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Étape 3 : Expert BIAT Policy -->
+          <div class="moe-step">
+            <div class="moe-step-track">
+              <div class="moe-step-node node-pending">
+                <i class="pi pi-building" style="font-size:0.65rem"></i>
+              </div>
+              <div class="moe-step-line line-pending"></div>
+            </div>
+            <div class="moe-step-body pending-body">
+              <div class="moe-step-label-row">
+                <span class="moe-step-tag biat-tag">Expert BIAT Policy</span>
+                <span class="moe-step-name">WSO2 + conformité bancaire</span>
+              </div>
+              <div class="moe-expert-chip chip-dim">
+                <div class="expert-chip-dot amber"></div>
+                <span class="expert-chip-model dim">openai/gpt-oss-120b</span>
+                <span class="expert-chip-rag dim">RAG : config WSO2 + règles métier</span>
+                <span class="expert-chip-conf dim">conf → 0.0-1.0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Étape 4 : AGGREGATOR HITL RL — mis en valeur -->
+          <div class="moe-step">
+            <div class="moe-step-track">
+              <div class="moe-step-node node-rl">
+                <i class="pi pi-sliders-h" style="font-size:0.65rem"></i>
+              </div>
+            </div>
+            <div class="moe-step-body pending-body">
+              <div class="moe-step-label-row">
+                <span class="moe-step-tag rl-tag">Aggregator HITL RL</span>
+                <span class="moe-step-name">Synthèse pondérée — openai/gpt-oss-120b</span>
+              </div>
+              <div class="moe-model-tag-wrap">
+                <span class="moe-model-tag-llm">openai/gpt-oss-120b-versatile</span>
+              </div>
+            </div>
+          </div>
+
+        </ng-container>
+
+        <!-- Bloqué -->
+        <div class="moe-blocked" *ngIf="qdrantBlocked">
+          <i class="pi pi-ban" style="font-size:1rem;color:#f43f5e;flex-shrink:0"></i>
+          <div>
+            <div class="moe-blocked-title">Pipeline arrêté — doublon strict détecté</div>
+            <div class="moe-blocked-sub">
+              Identique à <b>{{ qdrantSimilarApi }}</b>
+              ({{ qdrantSimilarity ? (qdrantSimilarity * 100).toFixed(0) + '%' : '≥98%' }} similarité vectorielle)
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="moe-progress" *ngIf="!qdrantBlocked">
+          <div class="moe-progress-meta">
+            <span>{{ qdrantStep === 'checking' ? 'Qdrant · scan vectoriel' : 'Experts MoE · analyse en cours' }}</span>
+            <span class="moe-progress-sub">{{ getCouncilSubtitle() }}</span>
+          </div>
+          <div class="moe-progress-track">
+            <div class="moe-progress-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           RÉSULTAT MoE + HITL RL
+           ═══════════════════════════════════════════════ -->
+      <div class="moe-result" *ngIf="aiAnalyzed">
+
+        <!-- Badge Qdrant compact -->
+        <div class="moe-qdrant-chip" *ngIf="qdrantStep === 'done'">
+          <i class="pi pi-database" style="font-size:0.6rem"></i>
+          <span>Qdrant</span>
+          <span class="qchip-level" [style.color]="getQdrantLevelColor()">{{ getQdrantLevelLabel() }}</span>
+          <span class="qchip-rag" *ngIf="qdrantRagCount > 0">· RAG ×{{ qdrantRagCount }}</span>
+        </div>
+
+        <!-- Header résultat -->
+        <div class="moe-result-header">
+          <div class="moe-result-icon">
+            <i class="pi pi-check-circle"></i>
+          </div>
+          <div class="moe-result-meta">
+            <span class="moe-result-title">Mixture of Experts — Analyse terminée</span>
+            <span class="moe-result-sub">{{ getCouncilSubtitle() }}</span>
+          </div>
+          <div class="moe-result-score" *ngIf="aiScore !== null"
+               [style.color]="aiScore !== null && aiScore >= 80 ? '#22c55e' : aiScore !== null && aiScore >= 60 ? '#f59e0b' : '#f43f5e'">
+            <span class="moe-score-num">{{ aiScore }}</span>
+            <span class="moe-score-den">/100</span>
+          </div>
+        </div>
+
+        <!-- Experts actifs avec scores -->
+        <div class="moe-experts-result" *ngIf="iaEval">
+          <div class="mer-expert" *ngIf="iaEval.design_score !== null">
+            <div class="mer-dot" style="background:#c042ff"></div>
+            <div class="mer-label">
+              <span class="mer-name">Design</span>
+              <span class="mer-rag-tag">RAG Qdrant</span>
+            </div>
+            <div class="mer-bar">
+              <div class="mer-fill" style="background:#c042ff"
+                   [style.width]="iaEval.design_score + '%'"></div>
+            </div>
+            <span class="mer-val" style="color:#c042ff">{{ iaEval.design_score }}</span>
+          </div>
+          <div class="mer-expert" *ngIf="iaEval.security_score !== null">
+            <div class="mer-dot" style="background:#f59e0b"></div>
+            <div class="mer-label">
+              <span class="mer-name">Security</span>
+              <span class="mer-rag-tag">RAG OWASP</span>
+            </div>
+            <div class="mer-bar">
+              <div class="mer-fill" style="background:#f59e0b"
+                   [style.width]="iaEval.security_score + '%'"></div>
+            </div>
+            <span class="mer-val" style="color:#f59e0b">{{ iaEval.security_score }}</span>
+          </div>
+          <div class="mer-expert" *ngIf="iaEval.chairman_score !== null">
+            <div class="mer-dot" style="background:#22c55e"></div>
+            <div class="mer-label">
+              <span class="mer-name">BIAT Policy</span>
+              <span class="mer-rag-tag">RAG WSO2</span>
+            </div>
+            <div class="mer-bar">
+              <div class="mer-fill" style="background:#22c55e"
+                   [style.width]="iaEval.chairman_score + '%'"></div>
+            </div>
+            <span class="mer-val" style="color:#22c55e">{{ iaEval.chairman_score }}</span>
+          </div>
+        </div>
+
+        <!-- Score RL final simplifié -->
+        <div class="rl-score-simple" *ngIf="iaEval?.moe_aggregation">
+          <div class="rls-icon"><i class="pi pi-sliders-h"></i></div>
+          <div class="rls-info">
+            <span class="rls-label">Score RL Final</span>
+            <span class="rls-model">openai/gpt-oss-120b-versatile</span>
+          </div>
+          <div class="rls-val" [style.color]="(iaEval.moe_aggregation.final_score ?? 0) >= 80 ? '#22c55e' : (iaEval.moe_aggregation.final_score ?? 0) >= 60 ? '#f59e0b' : '#f43f5e'">
+            {{ iaEval.moe_aggregation.final_score?.toFixed(0) }}<span class="rls-over">/100</span>
+          </div>
+        </div>
+
+        <!-- Synthèse textuelle -->
+        <div class="moe-synthesis">
+          <div class="moe-synthesis-label">
+            <i class="pi pi-align-left" style="font-size:0.65rem"></i>
+            Synthèse MoE
+          </div>
+          <p class="moe-synthesis-text">{{ aiSuggestion }}</p>
+        </div>
+
+        <!-- Métriques compactes -->
+        <div class="moe-metrics-row" *ngIf="iaEval">
+          <div class="moe-metric">
+            <span class="mm-val" [style.color]="getAgreementColor()">
+              {{ (iaEval.agreement_ratio * 100).toFixed(0) }}%
+            </span>
+            <span class="mm-label">Agreement</span>
+            <span class="mm-sub" [style.color]="getAgreementColor()">{{ getAgreementLabel() }}</span>
+          </div>
+          <div class="moe-metric">
+            <span class="mm-val" style="color:#00f2ff">
+              {{ (iaEval.issues_coverage * 100).toFixed(0) }}%
+            </span>
+            <span class="mm-label">Coverage</span>
+            <span class="mm-sub" style="color:#00f2ff">{{ getCoverageLabel() }}</span>
+          </div>
+          <div class="moe-metric">
+            <span class="mm-val" style="color:#f59e0b">
+              {{ formatLatency(getTotalLatency()) }}
+            </span>
+            <span class="mm-label">Latence</span>
+            <span class="mm-sub" style="color:#f59e0b">{{ getLatenceLabel() }}</span>
+          </div>
+        </div>
+
+        <!-- Boutons actions -->
+        <button class="fix-wizard-btn" *ngIf="fixes.length > 0" (click)="showFixWizard = true">
+          <i class="pi pi-wrench"></i>
+          Fix Wizard — {{ fixes.length }} corrections disponibles
+        </button>
+        <button class="council-expand-btn" (click)="toggleFullAiResponse()" style="margin-top:6px">
+          <i class="pi" [class.pi-chevron-down]="!showFullAiResponse" [class.pi-chevron-up]="showFullAiResponse"></i>
+          {{ showFullAiResponse ? 'Réduire' : 'Voir analyse complète' }}
+        </button>
+        <div class="council-full-response custom-scroll" *ngIf="showFullAiResponse && aiFullResponse">
+          <pre class="council-response-text">{{ aiFullResponse }}</pre>
+        </div>
+      </div>
+
+      <!-- Fallback statique -->
+      <div class="ai-insight" *ngIf="!aiAnalyzed && !aiLoading">
+        <div class="ai-header"><i class="pi pi-bolt"></i><span>Analyse Spectral/OPA</span></div>
+        <p class="ai-text">{{ aiSuggestion }}</p>
+      </div>
+
+      <!-- Status + violations -->
+      <div class="card_title__container">
+        <span class="card_title" [style.color]="qualityScore >= 90 ? '#22c55e' : '#f43f5e'">
+          {{ qualityScore >= 90 ? 'BIAT Compliant' : 'Audit Failed' }}
+        </span>
+        <span class="issues-count" *ngIf="auditReport.length > 0">
+          {{ auditReport.length }} violation(s) — {{ errorsCount }} errors · {{ warningsCount }} warnings
+        </span>
+      </div>
+      <ul class="card__list custom-scroll">
+        <li class="card__list_item" *ngFor="let issue of auditReport"
+            (click)="scrollToLine(getLineNumber(issue))"
+            [class.active-issue]="getLineNumber(issue) !== null && selectedLine === getLineNumber(issue)">
+          <span class="check" [style.background-color]="getSeverityColor(issue)">
+            <i class="pi pi-exclamation-circle" style="font-size:0.7rem;color:white;"></i>
+          </span>
+          <span class="list_text">
+            <span class="issue-cat-tag" [style.color]="getIssueCategoryColor(issue)">{{ getIssueCategoryLabel(issue) }}</span>
+            <b *ngIf="getLineNumber(issue) !== null"> L{{ getLineNumber(issue)! + 1 }}:</b>
+            <b *ngIf="getLineNumber(issue) === null"> [{{ issue.code }}]</b>
+            {{ issue.message }}
+          </span>
+        </li>
+        <li class="card__list_item" *ngIf="auditReport.length === 0">
+          <span class="check" style="background-color:#22c55e;">
+            <i class="pi pi-check" style="font-size:0.7rem;color:white;"></i>
+          </span>
+          <span class="list_text">Aucune violation détectée ✓</span>
+        </li>
+      </ul>
+      <button class="button" (click)="resetAudit()">Nouvelle Analyse</button>
+    </div>
+
+    <!-- Fix Wizard -->
+    <div class="fix-wizard-panel" *ngIf="showFixWizard && !showCorrectedYaml">
+      <div class="fix-wizard-header">
+        <div class="fix-wizard-icon"><i class="pi pi-wrench"></i></div>
+        <div>
+          <div class="fix-wizard-title">Fix Wizard — MoE Council</div>
+          <div class="fix-wizard-subtitle">Choisissez la correction pour chaque violation</div>
+        </div>
+        <button class="fix-wizard-close" (click)="showFixWizard = false"><i class="pi pi-times"></i></button>
+      </div>
+      <div class="fix-progress-bar">
+        <div class="fix-progress-fill" [style.width]="(selectedFixesCount / fixes.length * 100) + '%'"></div>
+      </div>
+      <div class="fix-progress-label">{{ selectedFixesCount }} / {{ fixes.length }} corrections sélectionnées</div>
+      <div class="fix-list custom-scroll">
+        <div class="fix-item" *ngFor="let fix of fixes">
+          <div class="fix-item-header">
+            <span class="fix-severity-dot" [style.background]="getSeverityColorByCategory(fix.category)"></span>
+            <span class="fix-code">[{{ fix.code }}]</span>
+            <span class="fix-check" *ngIf="selectedFixes[fix.id] !== undefined">✓</span>
+          </div>
+          <div class="fix-message">{{ fix.message }}</div>
+          <div class="fix-options">
+            <button class="fix-option" *ngFor="let option of fix.options; let i = index"
+                    [class.selected]="isFixSelected(fix.id, i)" (click)="selectFix(fix.id, i)">
+              <i class="pi" [class.pi-check-circle]="isFixSelected(fix.id, i)" [class.pi-circle]="!isFixSelected(fix.id, i)"></i>
+              <span class="fix-option-label">{{ option.label }}</span>
+            </button>
+          </div>
+          <div class="fix-yaml-preview" *ngIf="selectedFixes[fix.id] !== undefined">
+            <pre>{{ fix.options[selectedFixes[fix.id]].yaml }}</pre>
+          </div>
+        </div>
+      </div>
+      <button class="apply-fixes-btn" [disabled]="!allFixesSelected" (click)="applyAllFixes()">
+        <i class="pi pi-check-circle"></i> Appliquer toutes les corrections
+      </button>
+      <div class="apply-hint" *ngIf="!allFixesSelected">Sélectionnez une correction pour chaque violation</div>
+    </div>
+
+    <!-- Résultat corrigé -->
+    <div class="corrected-panel" *ngIf="showCorrectedYaml">
+      <div class="corrected-header">
+        <div class="corrected-icon"><i class="pi pi-check-circle"></i></div>
+        <div>
+          <div class="corrected-title">Spec Corrigée ✓</div>
+          <div class="corrected-subtitle">{{ fixes.length }} corrections appliquées par le MoE Council</div>
+        </div>
+      </div>
+      <div class="corrected-score-row">
+        <div class="score-before"><span class="score-label">Score avant</span><span class="score-value red">{{ qualityScore }}%</span></div>
+        <i class="pi pi-arrow-right" style="color:#8b949e;font-size:1.2rem"></i>
+        <div class="score-after"><span class="score-label">Score estimé après</span><span class="score-value green">{{ aiScore || 90 }}%</span></div>
+      </div>
+      <div class="corrected-yaml-container">
+        <div class="corrected-yaml-header">
+          <span class="corrected-yaml-title"><i class="pi pi-file-edit"></i> {{ selectedFileName || 'spec.yaml' }} — Version corrigée</span>
+          <button class="download-btn" (click)="downloadCorrectedYaml()"><i class="pi pi-download"></i> Télécharger</button>
+        </div>
+        <pre class="corrected-yaml-content custom-scroll">{{ correctedYaml }}</pre>
+      </div>
+      <div class="corrected-actions">
+        <button class="btn-resubmit" (click)="showCorrectedYaml = false; showFixWizard = false">
+          <i class="pi pi-arrow-left"></i> Retour
+        </button>
+        <button class="button" (click)="resetAudit()">Nouvelle Analyse</button>
+      </div>
+    </div>
+
+    <!-- Erreur -->
+    <div class="warning-card" *ngIf="errorMessage">
+      <div class="warning-card__header">
+        <div class="warning-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 3l9 16H3L12 5zm-1 6v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
+        </div>
+        <div class="warning-card_alert">Erreur</div>
+      </div>
+      <div class="warning-card__message">{{ errorMessage }}</div>
+      <button class="warning-card__button" (click)="resetError()">Réessayer</button>
+    </div>
+
+  </div>
+
+  <!-- Éditeur de code -->
+  <div class="editor-card">
+    <div class="editor-titlebar">
+      <span class="file-name">
+        {{ showCorrectedYaml ? '✓ ' + (selectedFileName || 'spec.yaml') + ' — corrigé' : (selectedFileName || 'openapi_spec.yaml') }}
+      </span>
+      <div class="window-controls">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </div>
+    <div class="editor-content custom-scroll">
+      <div *ngIf="showCorrectedYaml && correctedYaml">
+        <div *ngFor="let line of correctedYaml.split('\n'); let i = index"
+             [class]="'line-item line-c-' + i" style="background:rgba(34,197,94,0.04)">
+          <span class="ln" style="color:#22c55e">{{ i + 1 }}</span>
+          <code class="txt" style="color:#c9d1d9">{{ line || ' ' }}</code>
+        </div>
+      </div>
+      <div *ngIf="!showCorrectedYaml && rawYaml">
+        <div *ngFor="let line of rawYaml.split('\n'); let i = index"
+             [class]="'line-item line-' + i" [class.active-err]="selectedLine === i">
+          <span class="ln">{{ i + 1 }}</span>
+          <code class="txt">{{ line || ' ' }}</code>
+        </div>
+      </div>
+      <div *ngIf="!rawYaml && !correctedYaml" class="empty-state">
+        <i class="pi pi-file-edit"></i>
+        <span>Importez une spec OpenAPI pour visualiser le code</span>
+      </div>
+    </div>
+  </div>
+
+</div>

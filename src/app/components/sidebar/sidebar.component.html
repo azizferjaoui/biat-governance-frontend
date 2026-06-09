@@ -1,0 +1,114 @@
+<div class="sidebar">
+
+  <!-- ══ LOGO ══ -->
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">
+      <i class="pi pi-shield" style="color:#c042ff;font-size:1.2rem"></i>
+    </div>
+    <div class="sidebar-logo-text">
+      <span class="sidebar-brand-top">BIAT</span>
+      <span class="sidebar-brand-bottom">AI GOVERNANCE HUB</span>
+    </div>
+  </div>
+
+  <!-- ══ USER CARD ══ -->
+  <div class="sidebar-user-card" *ngIf="user">
+    <div class="suc-avatar"
+         [style.background]="isOwner() ? 'rgba(244,63,94,0.15)' : 'rgba(34,197,94,0.12)'"
+         [style.border-color]="isOwner() ? 'rgba(244,63,94,0.5)' : 'rgba(34,197,94,0.5)'">
+      {{user.username.substring(0,2).toUpperCase()}}
+    </div>
+    <div class="suc-info">
+      <span class="suc-name">{{user.username}}</span>
+      <span class="suc-role-badge"
+            [style.background]="isOwner() ? 'rgba(244,63,94,0.15)' : 'rgba(34,197,94,0.12)'"
+            [style.color]="isOwner() ? '#f43f5e' : '#22c55e'"
+            [style.border-color]="isOwner() ? 'rgba(244,63,94,0.3)' : 'rgba(34,197,94,0.3)'">
+        <i class="pi" [class.pi-crown]="isOwner()" [class.pi-user]="!isOwner()" style="font-size:0.55rem"></i>
+        {{isOwner() ? 'Owner' : 'Developer'}}
+      </span>
+    </div>
+  </div>
+
+  <div class="sidebar-sep"></div>
+
+  <!-- ══ NAVIGATION ══ -->
+  <nav class="sidebar-nav">
+
+    <!-- ─── OWNER : navigation complète ─── -->
+    <ng-container *ngIf="isOwner()">
+
+      <div class="sidebar-nav-section">GOVERNANCE</div>
+
+      <a routerLink="/" routerLinkActive="active"
+         [routerLinkActiveOptions]="{exact:true}" class="sidebar-link">
+        <div class="sl-icon-wrap"><i class="pi pi-upload"></i></div>
+        <span>API Import</span>
+      </a>
+
+      <a routerLink="/inventory" routerLinkActive="active" class="sidebar-link">
+        <div class="sl-icon-wrap"><i class="pi pi-server"></i></div>
+        <span>API Inventory</span>
+      </a>
+
+      <a routerLink="/ai-semantic" routerLinkActive="active" class="sidebar-link">
+        <div class="sl-icon-wrap"><i class="pi pi-bolt"></i></div>
+        <span>AI Semantic</span>
+      </a>
+
+      <div class="sidebar-sep" style="margin:12px 0 8px"></div>
+      <div class="sidebar-nav-section">ADMINISTRATION</div>
+
+      <a routerLink="/admin" routerLinkActive="active" class="sidebar-link sidebar-link-admin">
+        <div class="sl-icon-wrap sl-icon-admin"><i class="pi pi-shield"></i></div>
+        <span>Admin Panel</span>
+        <span class="sl-admin-tag">Owner</span>
+      </a>
+
+    </ng-container>
+
+    <!-- ─── USER/DEV : dashboard uniquement ─── -->
+    <ng-container *ngIf="!isOwner()">
+
+      <div class="sidebar-nav-section">DEVELOPER</div>
+
+      <a routerLink="/" routerLinkActive="active"
+         [routerLinkActiveOptions]="{exact:true}" class="sidebar-link">
+        <div class="sl-icon-wrap"><i class="pi pi-upload"></i></div>
+        <span>API Import</span>
+      </a>
+
+      <div class="sidebar-sep" style="margin:16px 0 10px"></div>
+
+      <!-- Info accès développeur -->
+      <div class="sidebar-dev-info">
+        <div class="sdi-header">
+          <i class="pi pi-info-circle" style="color:#22c55e;font-size:0.75rem"></i>
+          <span>Accès Développeur</span>
+        </div>
+        <p class="sdi-text">
+          Soumettez vos specs OpenAPI pour audit automatique par le pipeline MoE BIAT.
+        </p>
+        <div class="sdi-features">
+          <div class="sdi-feat"><i class="pi pi-check" style="color:#22c55e;font-size:0.6rem"></i> Analyse Spectral + OPA</div>
+          <div class="sdi-feat"><i class="pi pi-check" style="color:#22c55e;font-size:0.6rem"></i> MoE openai/gpt-oss-120b</div>
+          <div class="sdi-feat"><i class="pi pi-check" style="color:#22c55e;font-size:0.6rem"></i> YAML corrigé par l'IA</div>
+          <div class="sdi-feat"><i class="pi pi-check" style="color:#22c55e;font-size:0.6rem"></i> Déduplication Qdrant</div>
+        </div>
+      </div>
+
+    </ng-container>
+
+  </nav>
+
+  <div style="flex:1"></div>
+
+  <!-- ══ FOOTER ══ -->
+  <div class="sidebar-footer">
+    <div class="sf-status">
+      <div class="sf-status-dot"></div>
+      <span>Gateway Online</span>
+    </div>
+  </div>
+
+</div>

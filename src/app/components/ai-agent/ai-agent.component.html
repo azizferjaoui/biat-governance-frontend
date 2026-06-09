@@ -1,0 +1,141 @@
+<button class="agent-fab" (click)="toggle()">
+  <i class="pi" [class.pi-comments]="!isOpen" [class.pi-times]="isOpen"></i>
+  <span *ngIf="!isOpen">Agent IA</span>
+  <span class="fab-alert-badge" *ngIf="alertsCount > 0 && !isOpen">{{alertsCount}}</span>
+</button>
+
+<div class="agent-panel" [class.agent-panel-open]="isOpen">
+
+  <!-- Header -->
+  <div class="agent-header">
+    <div class="agent-header-left">
+      <div class="agent-avatar">AI</div>
+      <div>
+        <div class="agent-title">Assistant BIAT Governance</div>
+        <div class="agent-subtitle" *ngIf="!audit">Aucun audit sélectionné</div>
+        <div class="agent-subtitle audit-loaded" *ngIf="audit">
+          <i class="pi pi-circle-fill" style="font-size:0.45rem;color:#22c55e"></i>
+          {{audit.spec_id}} · {{audit.score ?? '—'}}%
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;align-items:center">
+      <span class="alert-chip" *ngIf="alertsCount > 0" (click)="send('Voir les alertes actives')">
+        {{alertsCount}} alertes
+      </span>
+      <button class="agent-icon-btn" (click)="clearChat()"><i class="pi pi-refresh" style="font-size:0.65rem"></i></button>
+      <button class="agent-icon-btn close" (click)="toggle()"><i class="pi pi-times" style="font-size:0.65rem"></i></button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="agent-messages">
+    <div *ngFor="let msg of messages"
+         class="agent-msg"
+         [class.msg-user]="msg.role==='user'"
+         [class.msg-ai]="msg.role==='assistant'">
+
+      <div class="msg-avatar" *ngIf="msg.role==='assistant'">AI</div>
+
+      <div class="msg-bubble">
+        <!-- Loading -->
+        <div class="loading-dots" *ngIf="msg.loading">
+          <span></span><span></span><span></span>
+        </div>
+
+        <!-- Texte normal -->
+        <span *ngIf="!msg.loading && msg.type==='text'">{{msg.content}}</span>
+
+        <!-- Actions cliquables -->
+        <div *ngIf="!msg.loading && msg.type==='actions'">
+          <p class="msg-text" *ngIf="msg.content">{{msg.content}}</p>
+          <div class="action-btns">
+            <button *ngFor="let a of msg.actions"
+                    class="action-btn"
+                    [class.action-approve]="a.action==='approve'"
+                    [class.action-reject]="a.action==='reject'"
+                    [class.action-jira]="a.action==='create_jira'"
+                    [class.action-yaml]="a.action==='show_yaml'"
+                    (click)="executeAction(a)">
+              <i class="pi"
+                 [class.pi-check]="a.action==='approve'"
+                 [class.pi-times]="a.action==='reject'"
+                 [class.pi-ticket]="a.action==='create_jira'"
+                 [class.pi-file-edit]="a.action==='show_yaml'"
+                 style="font-size:0.65rem"></i>
+              {{a.action==='approve' ? 'Approuver' :
+                a.action==='reject'  ? 'Rejeter'   :
+                a.action==='create_jira' ? 'Créer ticket Jira' : 'Voir YAML'}}
+            </button>
+          </div>
+        </div>
+
+        <!-- Fixes ligne par ligne -->
+        <div *ngIf="!msg.loading && msg.type==='fixes'">
+          <p class="msg-text" style="margin-bottom:8px">Corrections ligne par ligne :</p>
+          <div class="fix-card" *ngFor="let f of msg.fixes">
+            <div class="fix-header">
+              <span class="fix-line">L{{f.line}}</span>
+              <span class="fix-violation">{{f.violation}}</span>
+            </div>
+            <div class="fix-diff">
+              <div class="diff-before"><span class="diff-marker">−</span><code>{{f.before}}</code></div>
+              <div class="diff-after"> <span class="diff-marker">+</span><code>{{f.after}}</code></div>
+            </div>
+            <div class="fix-reason">{{f.reason}}</div>
+          </div>
+        </div>
+
+        <!-- Compare -->
+        <div *ngIf="!msg.loading && msg.type==='compare' && msg.compare">
+          <div class="compare-scores">
+            <div class="cs-item">
+              <span class="cs-label">Version #{{msg.compare.previous_id}}</span>
+              <span class="cs-score" [style.color]="getScoreColor(msg.compare.previous_score)">{{msg.compare.previous_score}}%</span>
+            </div>
+            <i class="pi pi-arrow-right" style="color:#8b949e;font-size:0.8rem"></i>
+            <div class="cs-item">
+              <span class="cs-label">Version #{{msg.compare.current_id}}</span>
+              <span class="cs-score" [style.color]="getScoreColor(msg.compare.current_score)">{{msg.compare.current_score}}%</span>
+            </div>
+            <div class="cs-delta" [style.color]="msg.compare.score_delta >= 0 ? '#22c55e' : '#f43f5e'">
+              {{msg.compare.score_delta >= 0 ? '+' : ''}}{{msg.compare.score_delta}} pts
+            </div>
+          </div>
+          <p class="msg-text" style="margin-top:8px">{{msg.content}}</p>
+        </div>
+
+        <!-- Alerts -->
+        <div *ngIf="!msg.loading && msg.type==='alerts'">
+          <p class="msg-text" *ngIf="msg.content" style="margin-bottom:8px">{{msg.content}}</p>
+          <div class="alert-item" *ngFor="let a of msg.alerts?.slice(0,5)"
+               [class.alert-high]="a.severity==='high'"
+               [class.alert-medium]="a.severity==='medium'">
+            <span class="alert-spec">{{a.spec_id}}</span>
+            <span class="alert-msg">{{a.message}}</span>
+          </div>
+        </div>
+
+        <!-- Rapport / Explanation -->
+        <div *ngIf="!msg.loading && (msg.type==='report' || msg.type==='explanation')">
+          <p class="msg-text">{{msg.content}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggestions -->
+  <div class="agent-suggestions">
+    <button class="suggestion-chip" *ngFor="let s of suggestions" (click)="send(s)">{{s}}</button>
+  </div>
+
+  <!-- Input -->
+  <div class="agent-input-row">
+    <textarea class="agent-input" [(ngModel)]="input"
+              placeholder="Posez une question..." rows="1"
+              (keydown)="onKeydown($event)"></textarea>
+    <button class="send-btn" (click)="send()" [disabled]="!input.trim()||loading">
+      <i class="pi pi-send" style="font-size:0.75rem"></i>
+    </button>
+  </div>
+</div>

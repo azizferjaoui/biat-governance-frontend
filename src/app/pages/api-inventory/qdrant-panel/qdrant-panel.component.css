@@ -1,0 +1,510 @@
+/* ═══════════════════════════════════════════
+   QDRANT PANEL — styles complets
+   ═══════════════════════════════════════════ */
+
+.qdrant-panel {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: fadeIn 0.3s ease;
+}
+
+/* ── Header ── */
+.qp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.qp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.qp-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(0, 242, 255, 0.1);
+  border: 1px solid rgba(0, 242, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.qp-icon i { color: #00f2ff; font-size: 1rem; }
+.qp-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e6edf3;
+}
+.qp-subtitle {
+  font-size: 0.6rem;
+  color: #8b949e;
+  margin-top: 1px;
+}
+.qp-refresh-btn {
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+.qp-refresh-btn:hover { border-color: #00f2ff; color: #00f2ff; }
+
+/* ── Onglets ── */
+.qp-tabs {
+  display: flex;
+  gap: 4px;
+  background: #0d1117;
+  border-radius: 8px;
+  padding: 3px;
+}
+.qp-tabs button {
+  flex: 1;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: 0.2s;
+}
+.qp-tabs button i { font-size: 0.7rem; }
+.qp-tabs button:hover { color: #e6edf3; }
+.qp-tabs button.active {
+  background: #161b22;
+  color: #00f2ff;
+  border: 1px solid rgba(0, 242, 255, 0.2);
+}
+
+/* ── Stat cards ── */
+.qp-stats-row {
+  display: flex;
+  gap: 8px;
+}
+.qp-stat-card {
+  flex: 1;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.qp-stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.qp-stat-label {
+  font-size: 0.58rem;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Seuils ── */
+.qp-thresholds-box {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px;
+}
+.qp-thresholds-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+.qp-threshold-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.qp-threshold-row:last-child { margin-bottom: 0; }
+.qp-th-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.qp-th-label {
+  font-size: 0.62rem;
+  font-family: monospace;
+  font-weight: 700;
+  color: #8b949e;
+  width: 38px;
+  flex-shrink: 0;
+}
+.qp-th-bar-wrap { flex: 1; }
+.qp-th-bar {
+  height: 4px;
+  background: #30363d;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.qp-th-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.qp-th-val {
+  font-size: 0.62rem;
+  font-family: monospace;
+  color: #e6edf3;
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.qp-th-desc {
+  font-size: 0.58rem;
+  color: #484f58;
+  width: 90px;
+  flex-shrink: 0;
+}
+
+/* ── Audit summary ── */
+.qp-audit-summary {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.qp-audit-summary-title {
+  font-size: 0.65rem;
+  color: #8b949e;
+  margin-bottom: 8px;
+}
+.qp-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.qp-chip {
+  font-size: 0.58rem;
+  font-family: monospace;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+/* ── Danger zone ── */
+.qp-danger-zone {
+  padding-top: 10px;
+  border-top: 1px solid rgba(248, 81, 73, 0.15);
+}
+.qp-danger-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  color: #f85149;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: 0.2s;
+}
+.qp-danger-btn:hover {
+  background: rgba(248, 81, 73, 0.08);
+  border-color: rgba(248, 81, 73, 0.6);
+}
+
+/* ── Logs ── */
+.qp-logs-loading,
+.qp-logs-empty {
+  text-align: center;
+  padding: 20px;
+  color: #8b949e;
+  font-size: 0.72rem;
+}
+.qp-logs-loading i { margin-right: 6px; }
+
+.qp-logs-list {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qp-log-item {
+  background: #0d1117;
+  border-radius: 6px;
+  padding: 7px 10px;
+  border: 1px solid #30363d;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: 0.15s;
+}
+.qp-log-item:hover { border-color: rgba(192, 66, 255, 0.2); }
+.qp-log-row1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.qp-log-op-badge {
+  font-size: 0.58rem;
+  font-family: monospace;
+  color: #c042ff;
+  background: rgba(192, 66, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.qp-log-result-badge {
+  font-size: 0.58rem;
+  font-family: monospace;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+.qp-log-date {
+  font-size: 0.55rem;
+  color: #484f58;
+  margin-left: auto;
+}
+.qp-log-row2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.qp-log-api {
+  font-size: 0.6rem;
+  color: #8b949e;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.qp-log-similar {
+  font-size: 0.6rem;
+  color: #f59e0b;
+}
+.qp-log-sim {
+  font-size: 0.6rem;
+  font-family: monospace;
+  color: #c042ff;
+  background: rgba(192, 66, 255, 0.08);
+  padding: 0 5px;
+  border-radius: 4px;
+}
+.qp-log-rag {
+  font-size: 0.58rem;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 0 5px;
+  border-radius: 4px;
+}
+.qp-reload-btn {
+  width: 100%;
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  padding: 7px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: 0.2s;
+}
+.qp-reload-btn:hover { border-color: #c042ff; color: #c042ff; }
+
+/* ── Check tab ── */
+.qp-check-hint {
+  font-size: 0.65rem;
+  color: #8b949e;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.qp-textarea {
+  width: 100%;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  color: #e6edf3;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.7rem;
+  font-family: 'Fira Code', monospace;
+  resize: vertical;
+  min-height: 90px;
+  max-height: 200px;
+  outline: none;
+  transition: 0.2s;
+  line-height: 1.5;
+}
+.qp-textarea:focus { border-color: #00f2ff; box-shadow: 0 0 0 2px rgba(0, 242, 255, 0.08); }
+.qp-check-btn {
+  width: 100%;
+  margin-top: 8px;
+  background: rgba(0, 242, 255, 0.08);
+  border: 1px solid rgba(0, 242, 255, 0.25);
+  color: #00f2ff;
+  padding: 9px 14px;
+  border-radius: 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: 0.2s;
+}
+.qp-check-btn:hover:not(:disabled) {
+  background: rgba(0, 242, 255, 0.15);
+  border-color: rgba(0, 242, 255, 0.5);
+}
+.qp-check-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Résultat check ── */
+.qp-check-result {
+  margin-top: 10px;
+  background: #0d1117;
+  border-radius: 10px;
+  border: 1px solid #30363d;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: fadeIn 0.3s ease;
+}
+.qp-result-level-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 7px;
+  justify-content: center;
+}
+.qp-result-level-badge i { font-size: 0.8rem; }
+
+/* 3 niveaux grid */
+.qp-levels-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.qp-level-block {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 7px;
+  padding: 8px 10px;
+  transition: border-color 0.2s;
+}
+.qp-level-block.level-active { border-color: rgba(192, 66, 255, 0.3); }
+.qp-level-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.qp-level-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.qp-level-name {
+  font-size: 0.65rem;
+  font-family: monospace;
+  font-weight: 700;
+  color: #c9d1d9;
+  flex: 1;
+}
+.qp-level-status {
+  font-size: 0.6rem;
+  font-family: monospace;
+  font-weight: 700;
+}
+.qp-level-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qp-level-bar {
+  flex: 1;
+  height: 5px;
+  background: #30363d;
+  border-radius: 3px;
+  overflow: visible;
+  position: relative;
+}
+.qp-level-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.qp-level-threshold-mark {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 11px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 1px;
+}
+.qp-level-pct {
+  font-size: 0.65rem;
+  font-family: monospace;
+  color: #8b949e;
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.qp-level-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  font-size: 0.6rem;
+  color: #8b949e;
+}
+.qp-hash-badge {
+  font-family: monospace;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.58rem;
+}
+.qp-hash-badge.hash-match {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+/* ── Scrollbar ── */
+.custom-scroll::-webkit-scrollbar { width: 4px; }
+.custom-scroll::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+.custom-scroll::-webkit-scrollbar-thumb:hover { background: #c042ff; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }

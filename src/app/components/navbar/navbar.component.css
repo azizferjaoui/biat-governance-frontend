@@ -1,0 +1,233 @@
+.top-navbar {
+  height: 70px;
+  margin-left: 260px;
+  background: rgba(10, 14, 23, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px 15px;
+  border-radius: 8px;
+  width: 350px;
+}
+
+.search-bar input {
+  background: none;
+  border: none;
+  color: var(--text-main);
+  margin-left: 10px;
+  width: 100%;
+  outline: none;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.pipeline-status {
+  font-size: 0.85rem;
+}
+
+.pipeline-status .label { opacity: 0.6; margin-right: 5px; }
+.pipeline-status .value { color: var(--accent-cyan); font-weight: bold; }
+
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-role { font-size: 0.85rem; font-weight: 500; }
+
+.avatar {
+  width: 35px;
+  height: 35px;
+  background: var(--biat-blue);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+/* Ajouter à la fin de navbar.component.css */
+
+.kc-user-block {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 5px 10px;
+}
+.kc-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 700; color: #e6edf3;
+  border: 1px solid; flex-shrink: 0;
+}
+.kc-avatar-skeleton {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.kc-user-info { display: flex; flex-direction: column; gap: 1px; }
+.kc-username  { font-size: 0.72rem; font-weight: 600; color: #e6edf3; }
+.kc-role      { font-size: 0.6rem; font-weight: 700; }
+.kc-logout-btn {
+  background: transparent; border: 1px solid rgba(244,63,94,0.3);
+  color: #f43f5e; border-radius: 6px; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: 0.2s; font-size: 0.75rem;
+}
+/* ══════════════════════════════════════════
+   NAVBAR — BIAT AI GOVERNANCE HUB
+   ══════════════════════════════════════════ */
+.navbar {
+  height: 56px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* ── Gauche ─────────────────────────────── */
+.navbar-left { flex: 1; }
+.navbar-search-wrap {
+  position: relative;
+  max-width: 420px;
+}
+.navbar-search-icon {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  color: #484f58;
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+.navbar-search {
+  width: 100%;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  color: #e6edf3;
+  padding: 8px 12px 8px 34px;
+  font-size: 0.75rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.navbar-search:focus { border-color: rgba(192,66,255,0.4); }
+.navbar-search::placeholder { color: #484f58; }
+
+/* ── Droite ─────────────────────────────── */
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Pipeline status */
+.navbar-pipeline-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+}
+.nps-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse 2s ease-in-out infinite;
+}
+.nps-label { color: #8b949e; }
+.nps-value { color: #22c55e; font-weight: 700; }
+
+/* Governance label */
+.navbar-gov-label {
+  font-size: 0.68rem;
+  color: #484f58;
+  font-weight: 600;
+  padding: 0 12px;
+  border-left: 1px solid #21262d;
+  border-right: 1px solid #21262d;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+/* User block */
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  padding: 5px 10px;
+  transition: border-color 0.2s;
+}
+.navbar-user:hover { border-color: rgba(192,66,255,0.3); }
+.nu-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 800; color: #e6edf3;
+  border: 1.5px solid;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+.nu-info { display: flex; flex-direction: column; gap: 1px; }
+.nu-name { font-size: 0.7rem; font-weight: 700; color: #e6edf3; line-height: 1; }
+.nu-role { font-size: 0.58rem; font-weight: 700; line-height: 1; }
+.nu-logout {
+  background: transparent;
+  border: 1px solid rgba(244,63,94,0.25);
+  color: #f43f5e;
+  border-radius: 6px;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: 0.15s; font-size: 0.7rem;
+  margin-left: 2px;
+}
+.nu-logout:hover { background: rgba(244,63,94,0.15); border-color: rgba(244,63,94,0.5); }
+
+/* Skeleton */
+.navbar-user-skeleton {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px;
+}
+.nus-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #21262d; animation: shimmer 1.5s ease-in-out infinite;
+}
+.nus-lines { display: flex; flex-direction: column; gap: 4px; }
+.nus-line { height: 8px; border-radius: 4px; background: #21262d; animation: shimmer 1.5s ease-in-out infinite; }
+.nus-line-1 { width: 70px; }
+.nus-line-2 { width: 40px; }
+
+@keyframes pulse {
+  0%,100% { opacity:0.5; transform:scale(0.85); }
+  50%      { opacity:1;   transform:scale(1.1); }
+}
+@keyframes shimmer {
+  0%,100% { opacity:0.4; }
+  50%      { opacity:0.8; }
+}
+.kc-logout-btn:hover { background: rgba(244,63,94,0.15); }
+@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} }
