@@ -2579,3 +2579,116 @@
 .llma-bar-track { flex:1;height:8px;background:var(--color-border-tertiary);border-radius:4px;overflow:hidden }
 .llma-bar-fill { height:100%;border-radius:4px;transition:width .5s ease }
 .llma-bar-val { font-size:10px;font-weight:500;font-family:var(--font-mono);min-width:28px;text-align:right }
+
+/* ── LLM Arena — améliorations design ──────────────────────── */
+.llma-champion td:first-child {
+  border-left: 3px solid #1D9E75 !important;
+}
+
+/* Score ring dans la carte comparaison */
+.llma-ccard-score {
+  padding: 12px 14px 4px;
+  font-size: 36px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.llma-ccard-score-sub {
+  font-size: 14px;
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+}
+
+/* Barre de score dans la carte */
+.llma-compare-score-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 14px 10px;
+}
+.llma-compare-bar-wrap { flex: 1; }
+.llma-compare-bar {
+  height: 6px;
+  background: var(--color-border-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+.llma-compare-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .6s ease;
+}
+.llma-compare-bar-lbl {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+/* Journal UPGRADE mis en valeur */
+.llm-log-item {
+  transition: background .2s;
+  border-radius: 4px;
+  padding: 6px 12px;
+}
+
+/* Modèles non supportés grisés */
+.llma-table tr[style*="opacity: 0.4"] .llma-model-id,
+.llma-table tr[style*="opacity:0.4"] .llma-model-id {
+  color: var(--color-text-tertiary) !important;
+}
+
+/* Throughput sous la latence */
+.llma-lat div {
+  font-size: 9px;
+  color: var(--color-text-tertiary);
+  margin-top: 1px;
+}
+
+/* ── Recorriger + Retester ──────────────────────────────────── */
+.tm-btn-recorrect {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--border-radius-md);
+  border: 0.5px solid rgba(192,66,255,.35);
+  background: rgba(192,66,255,.08);
+  color: #c042ff; font-size: 12px; cursor: pointer;
+  transition: .15s; font-weight: 500;
+}
+.tm-btn-recorrect:hover:not(:disabled) {
+  background: rgba(192,66,255,.15);
+  border-color: rgba(192,66,255,.5);
+}
+.tm-btn-recorrect:disabled { opacity: .5; cursor: not-allowed; }
+
+.tm-recorrect-info {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 12px; margin-top: 6px;
+  background: rgba(59,130,246,.06);
+  border: 0.5px solid rgba(59,130,246,.2);
+  border-radius: var(--border-radius-md);
+  font-size: 11px; color: #3b82f6;
+}
+
+/* ── Recorrection Banner ────────────────────────────────────── */
+.tm-recorrect-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; margin-top: 8px;
+  background: linear-gradient(135deg, rgba(192,66,255,.06), rgba(59,130,246,.06));
+  border: 0.5px solid rgba(192,66,255,.25);
+  border-radius: var(--border-radius-md);
+  animation: pub-appear .3s ease;
+}
+.tm-recorrect-left { display: flex; align-items: center; gap: 10px }
+.tm-recorrect-icon { font-size: 16px }
+.tm-recorrect-title {
+  font-size: 12px; font-weight: 500; color: var(--color-text-primary);
+  display: flex; align-items: center; gap: 6px;
+}
+.tm-recorrect-num {
+  font-family: monospace; font-size: 11px; padding: 1px 7px;
+  border-radius: 10px; background: rgba(192,66,255,.12);
+  color: #c042ff; border: 0.5px solid rgba(192,66,255,.3);
+}
+.tm-recorrect-sub  { font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px }
+.tm-recorrect-result { font-size: 12px; font-weight: 500 }

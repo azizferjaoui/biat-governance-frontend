@@ -634,10 +634,10 @@
 
         <!-- KPIs -->
         <div class="llm-kpi-grid">
-          <div class="llm-kpi-card">
-            <div class="llm-kpi-lbl">Champion actif</div>
-            <div class="llm-kpi-val green">{{llmActiveModel | slice:0:16}}</div>
-            <div class="llm-kpi-sub">auto-sélectionné</div>
+          <div class="llm-kpi-card" style="border:0.5px solid rgba(29,158,117,.3);background:rgba(29,158,117,.04)">
+            <div class="llm-kpi-lbl">🏆 Champion actif</div>
+            <div class="llm-kpi-val green" style="font-size:12px">{{llmActiveModel | slice:0:18}}</div>
+            <div class="llm-kpi-sub" style="color:#0F6E56">auto-sélectionné · score 85/100</div>
           </div>
           <div class="llm-kpi-card">
             <div class="llm-kpi-lbl">Modèles benchmarkés</div>
@@ -682,6 +682,7 @@
               <tbody>
                 <tr *ngFor="let m of llmModels; let i = index"
                     [class.llma-champion]="m.is_active"
+                    [style.border-left]="m.is_active?'3px solid #1D9E75':'none'"
                     [style.opacity]="(m.score||0)===0?'0.4':'1'">
                   <td class="llma-rank">
                     {{i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}}
@@ -857,9 +858,15 @@
               <span class="llm-section-title">Journal de découverte</span>
             </div>
             <div class="llm-log-wrap">
-              <div class="llm-log-item" *ngFor="let l of llmLogs | slice:0:8">
+              <div class="llm-log-item" *ngFor="let l of llmLogs | slice:0:8"
+                   [style.background]="l.event==='UPGRADE'?'rgba(29,158,117,.04)':'transparent'">
                 <span class="llm-log-time">{{l.created_at | date:'dd/MM HH:mm'}}</span>
-                <span class="llm-log-event" [class.ev-upgrade]="l.event==='UPGRADE'" [class.ev-detect]="l.event==='DETECTED'" [class.ev-test]="l.event==='TEST'">{{l.event}}</span>
+                <span class="llm-log-event"
+                      [class.ev-upgrade]="l.event==='UPGRADE'"
+                      [class.ev-detect]="l.event==='DETECTED'"
+                      [class.ev-test]="l.event==='TEST'">
+                  {{l.event==='UPGRADE'?'🚀 UPGRADE':l.event==='DETECTED'?'✨ NEW':l.event}}
+                </span>
                 <span class="llm-log-msg">{{l.details}}</span>
               </div>
             </div>
@@ -1219,10 +1226,41 @@
 
       <!-- Actions -->
       <div class="tm-actions">
-        <button class="tm-btn-rerun" (click)="rerunTests(audit)">
+        <button class="tm-btn-rerun" (click)="rerunTests(audit)"
+                [disabled]="actionLoading===audit.id">
           <i class="pi pi-refresh" [class.pi-spin]="actionLoading===audit.id"></i>
           Relancer les tests
         </button>
+        <button class="tm-btn-recorrect"
+                *ngIf="getTestStatus(audit)==='TESTS_FAILED' || getTestStatus(audit)==='FAILED'"
+                (click)="recorrectAndRetest(audit)"
+                [disabled]="actionLoading===audit.id">
+          <i class="pi pi-sparkles" [class.pi-spin]="actionLoading===audit.id"></i>
+          🔄 Recorriger + Retester
+        </button>
+      </div>
+
+      <!-- Cycle counter amélioré -->
+      <div class="tm-recorrect-banner"
+           *ngIf="(audit.ai_analysis?.recorrect_cycles || audit.ai?.recorrect_cycles) > 0">
+        <div class="tm-recorrect-left">
+          <span class="tm-recorrect-icon">🔄</span>
+          <div>
+            <div class="tm-recorrect-title">
+              Cycle de recorrection
+              <span class="tm-recorrect-num">
+                #{{audit.ai_analysis?.recorrect_cycles || audit.ai?.recorrect_cycles}}
+              </span>
+            </div>
+            <div class="tm-recorrect-sub">
+              Violations Schemathesis injectées dans le prompt MoE · YAML amélioré automatiquement
+            </div>
+          </div>
+        </div>
+        <div class="tm-recorrect-result"
+             [style.color]="getTestStatus(audit)==='TESTS_PASSED'?'#22c55e':'#f59e0b'">
+          {{getTestStatus(audit)==='TESTS_PASSED' ? '✓ TESTS_PASSED' : '⚠ En cours...'}}
+        </div>
       </div>
 
     </div>
@@ -1263,7 +1301,7 @@
 
 
       <!-- WSO2 Publication Panel -->
-      <div class="wso2-pub-panel" *ngIf="audit.status==='HUMAN_APPROVED' || audit.status==='PUBLISHED' || audit.ai_analysis?.wso2_published || audit.ai_analysis?.wso2_api_id || audit.ai?.wso2_api_id">
+      <div class="wso2-pub-panel" *ngIf="audit.status==='HUMAN_APPROVED' || audit.status==='PUBLISHED' || audit.status==='HUMAN_APPROVED' || audit.ai_analysis?.wso2_api_id || audit.wso2_api_id || audit.wso2_published">
         <!-- Alerte doublon fonctionnel -->
         <div class="wso2-duplicate-alert" *ngIf="_wso2DuplicateAlert?.show">
           <div class="wso2-dup-header">

@@ -152,7 +152,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           testing_pipeline: a.ai_analysis?.testing_pipeline ?? null,
           wso2_api_id     : a.ai_analysis?.wso2_api_id ?? null,
           wso2_url        : a.ai_analysis?.wso2_url ?? null,
-          wso2_published  : a.ai_analysis?.wso2_published ?? false,
+          wso2_published  : a.status === 'PUBLISHED' || a.ai_analysis?.wso2_published || !!a.ai_analysis?.wso2_api_id,
           _origin         : 'history'
         }));
         const liveOnly = this.audits.filter((a:any) => a._origin === 'live');
@@ -964,6 +964,45 @@ export class AdminComponent implements OnInit, OnDestroy {
            || audit.ai_analysis?.testing_pipeline;
     return t?.summary ?? null;
   }
+
+  recorrectAndRetest(audit: any): void {
+    this.actionLoading = audit.id;
+    this.addTestingLog('MoE', '🔄 Recorrection en cours — injection des violations Schemathesis...', 'tag-warn');
+
+    this.http.post<any>(`${this.API_URL}/agent/recorrect/${audit.id}`, {}).subscribe({
+      next: (res) => {
+        this.actionLoading = null;
+        if (res.error) {
+          this.addTestingLog('Recorrect', `✗ Erreur : ${res.error}`, 'tag-fail');
+          return;
+        }
+        this.addTestingLog('MoE', `✅ ${res.violations_fixed} violations corrigées par ${res.model}`, 'tag-pass');
+        const tp = res.testing;
+        if (tp) {
+          this.addTestingLog('Testing',
+            `${tp.status} — Pass rate: ${res.pass_rate}%`,
+            tp.status === 'TESTS_PASSED' ? 'tag-pass' : 'tag-warn');
+        }
+        // Mettre à jour l'audit sélectionné
+        if (res.new_yaml) {
+          if (!audit.ai) audit.ai = {};
+          audit.ai.corrected_yaml   = res.new_yaml;
+          audit.ai.testing_pipeline = tp;
+          if (this.selectedAudit?.id === audit.id) {
+            this.selectedAudit = { ...this.selectedAudit,
+              ai: { ...this.selectedAudit.ai, corrected_yaml: res.new_yaml, testing_pipeline: tp }
+            };
+          }
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.actionLoading = null;
+        this.addTestingLog('Recorrect', '✗ Erreur réseau', 'tag-fail');
+      }
+    });
+  }
+
   rerunTests(audit: any): void {
     this.actionLoading = audit.id;
     this.http.post<any>(`http://localhost:8000/agent/testing/run/${audit.id}`, {})
