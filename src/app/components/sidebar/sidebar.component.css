@@ -19,37 +19,63 @@
 .sidebar-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 20px 16px 16px;
+  gap: 12px;
+  padding: 20px 16px 18px;
   border-bottom: 1px solid #21262d;
+  background: linear-gradient(135deg, rgba(192,66,255,0.08) 0%, rgba(0,242,255,0.03) 100%);
+  position: relative;
+  overflow: hidden;
 }
-.sidebar-logo-icon {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  background: rgba(192,66,255,0.12);
-  border: 1px solid rgba(192,66,255,0.3);
-  display: flex; align-items: center; justify-content: center;
+.sidebar-logo::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(192,66,255,0.4), transparent);
+}
+.sidebar-logo-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  object-fit: contain;
   flex-shrink: 0;
+  padding: 6px;
+  background: white;
+  box-shadow:
+    0 0 0 1.5px rgba(192,66,255,0.7),
+    0 0 20px rgba(192,66,255,0.35),
+    0 0 40px rgba(192,66,255,0.15),
+    0 6px 16px rgba(0,0,0,0.5);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.sidebar-logo-img:hover {
+  box-shadow:
+    0 0 0 2px rgba(192,66,255,1),
+    0 0 28px rgba(192,66,255,0.6),
+    0 0 56px rgba(192,66,255,0.25),
+    0 6px 20px rgba(0,0,0,0.6);
+  transform: scale(1.06);
 }
 .sidebar-logo-text {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 4px;
   min-width: 0;
 }
 .sidebar-brand-top {
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 800;
   color: #c042ff;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   line-height: 1;
+  text-shadow: 0 0 12px rgba(192,66,255,0.5);
 }
 .sidebar-brand-bottom {
   font-size: 0.48rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #8b949e;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.9px;
   line-height: 1;
 }
 
@@ -232,7 +258,6 @@
 }
 
 /* ── App layout ─────────────────────────── */
-/* Assure que le contenu principal laisse place à la sidebar */
 :host {
   display: block;
 }

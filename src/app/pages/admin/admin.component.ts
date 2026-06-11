@@ -965,6 +965,34 @@ export class AdminComponent implements OnInit, OnDestroy {
     return t?.summary ?? null;
   }
 
+
+  downloadPdfReport(audit: any): void {
+    const url      = `${this.API_URL}/agent/report/${audit.id}`;
+    const filename = `rapport_audit_${audit.id}_${(audit.spec_id||'').replace('.yaml','')}.pdf`;
+    this.addTestingLog('PDF', `Génération rapport #${audit.id}...`, 'tag-info');
+
+    this.http.get(url, { responseType: 'arraybuffer' }).subscribe({
+      next: (buffer) => {
+        const blob    = new Blob([buffer], { type: 'application/pdf' });
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a       = document.createElement('a');
+        a.href        = blobUrl;
+        a.download    = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(blobUrl);
+        }, 100);
+        this.addTestingLog('PDF', `✓ ${filename} téléchargé`, 'tag-pass');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.addTestingLog('PDF', `✗ Erreur téléchargement : ${err.status}`, 'tag-fail');
+      }
+    });
+  }
+
   recorrectAndRetest(audit: any): void {
     this.actionLoading = audit.id;
     this.addTestingLog('MoE', '🔄 Recorrection en cours — injection des violations Schemathesis...', 'tag-warn');
@@ -1017,7 +1045,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           this.cdr.detectChanges();
         },
         error: () => { this.actionLoading = null; }
-      });
+      }); 
   }
 
 
