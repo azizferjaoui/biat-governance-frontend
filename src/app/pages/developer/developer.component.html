@@ -1,0 +1,440 @@
+<div class="dev-shell">
+
+  <!-- HEADER -->
+  <div class="dev-header">
+    <div class="dev-header-left">
+      <img src="assets/biat-it.jpg" alt="BIAT" class="dev-logo"/>
+      <div>
+        <div class="dev-title">Mon Espace Développeur</div>
+        <div class="dev-subtitle">BIAT AI Governance Platform</div>
+      </div>
+    </div>
+    <div class="dev-header-right">
+      <div class="dev-user">
+        <div class="dev-avatar">{{getUserInitials()}}</div>
+        <div>
+          <div class="dev-username">{{username}}</div>
+          <div class="dev-role">Developer</div>
+        </div>
+      </div>
+      <button class="dev-logout-btn" (click)="logout()">
+        <i class="pi pi-sign-out"></i> Déconnexion
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="dev-kpi-row">
+    <div class="dev-kpi-card" [class.dev-kpi-active]="filterStatus===''"
+         (click)="filterStatus=''">
+      <div class="dev-kpi-icon" style="background:rgba(192,66,255,0.12)">
+        <i class="pi pi-list" style="color:#c042ff"></i>
+      </div>
+      <div class="dev-kpi-val">{{myAudits.length}}</div>
+      <div class="dev-kpi-lbl">Total soumis</div>
+    </div>
+    <div class="dev-kpi-card" [class.dev-kpi-active]="filterStatus==='PASSED'"
+         (click)="filterStatus='PASSED'">
+      <div class="dev-kpi-icon" style="background:rgba(34,197,94,0.12)">
+        <i class="pi pi-check-circle" style="color:#22c55e"></i>
+      </div>
+      <div class="dev-kpi-val" style="color:#22c55e">{{countByStatus('PASSED')}}</div>
+      <div class="dev-kpi-lbl">Conformes</div>
+    </div>
+    <div class="dev-kpi-card" [class.dev-kpi-active]="filterStatus==='FAILED'"
+         (click)="filterStatus='FAILED'">
+      <div class="dev-kpi-icon" style="background:rgba(244,63,94,0.12)">
+        <i class="pi pi-times-circle" style="color:#f43f5e"></i>
+      </div>
+      <div class="dev-kpi-val" style="color:#f43f5e">{{countByStatus('FAILED')}}</div>
+      <div class="dev-kpi-lbl">Non conformes</div>
+    </div>
+    <div class="dev-kpi-card" [class.dev-kpi-active]="filterStatus==='HUMAN_APPROVED'"
+         (click)="filterStatus='HUMAN_APPROVED'">
+      <div class="dev-kpi-icon" style="background:rgba(59,130,246,0.12)">
+        <i class="pi pi-verified" style="color:#3b82f6"></i>
+      </div>
+      <div class="dev-kpi-val" style="color:#3b82f6">{{countByStatus('HUMAN_APPROVED')}}</div>
+      <div class="dev-kpi-lbl">Approuvés</div>
+    </div>
+    <div class="dev-kpi-card" [class.dev-kpi-active]="filterStatus==='PUBLISHED'"
+         (click)="filterStatus='PUBLISHED'">
+      <div class="dev-kpi-icon" style="background:rgba(0,242,255,0.1)">
+        <i class="pi pi-cloud-upload" style="color:#00f2ff"></i>
+      </div>
+      <div class="dev-kpi-val" style="color:#00f2ff">{{countByStatus('PUBLISHED')}}</div>
+      <div class="dev-kpi-lbl">Publiés WSO2</div>
+    </div>
+    <div class="dev-kpi-card">
+      <div class="dev-kpi-icon" style="background:rgba(245,158,11,0.12)">
+        <i class="pi pi-chart-bar" style="color:#f59e0b"></i>
+      </div>
+      <div class="dev-kpi-val" style="color:#f59e0b">{{getAvgScore()}}</div>
+      <div class="dev-kpi-lbl">Score moyen</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="dev-content">
+
+    <!-- COL GAUCHE : Liste des audits -->
+    <div class="dev-list-panel">
+
+      <!-- Filtres -->
+      <div class="dev-filters">
+        <div class="dev-search-wrap">
+          <i class="pi pi-search"></i>
+          <input type="text" placeholder="Rechercher une spec..."
+                 [(ngModel)]="searchQuery" class="dev-search"/>
+        </div>
+        <select class="dev-select" [(ngModel)]="filterStatus">
+          <option value="">Tous les statuts</option>
+          <option value="PASSED">✅ Conformes</option>
+          <option value="FAILED">❌ Non conformes</option>
+          <option value="HUMAN_APPROVED">🔵 Approuvés</option>
+          <option value="PUBLISHED">🌐 Publiés</option>
+          <option value="PENDING">⏳ En attente</option>
+        </select>
+        <span class="dev-count">{{filteredAudits.length}} résultats</span>
+      </div>
+
+      <!-- Timeline des audits -->
+      <div class="dev-timeline custom-scroll">
+
+        <div class="dev-empty" *ngIf="filteredAudits.length===0">
+          <i class="pi pi-inbox" style="font-size:2rem;color:#484f58"></i>
+          <span>Aucun audit trouvé</span>
+          <a routerLink="/" class="dev-submit-link">
+            <i class="pi pi-upload"></i> Soumettre une spec
+          </a>
+        </div>
+
+        <div class="dev-audit-item"
+             *ngFor="let a of filteredAudits"
+             [class.dev-audit-selected]="selectedAudit?.id===a.id"
+             (click)="selectAudit(a)">
+
+          <!-- Ligne verticale timeline -->
+          <div class="dev-timeline-line">
+            <div class="dev-timeline-dot"
+                 [style.background]="getStatusColor(a.status)"
+                 [style.box-shadow]="'0 0 8px '+getStatusColor(a.status)+'80'">
+            </div>
+          </div>
+
+          <!-- Contenu -->
+          <div class="dev-audit-card">
+            <div class="dev-audit-top">
+              <div class="dev-audit-name">{{a.spec_id}}</div>
+              <span class="dev-status-pill"
+                    [style.color]="getStatusColor(a.status)"
+                    [style.background]="getStatusColor(a.status)+'15'"
+                    [style.border-color]="getStatusColor(a.status)+'40'">
+                {{getStatusIcon(a.status)}} {{a.status}}
+              </span>
+            </div>
+            <div class="dev-audit-meta">
+              <span class="dev-meta-item">
+                <i class="pi pi-hashtag" style="font-size:9px"></i> #{{a.id}}
+              </span>
+              <span class="dev-meta-item">
+                <i class="pi pi-calendar" style="font-size:9px"></i>
+                {{formatDate(a.timestamp)}}
+              </span>
+              <span class="dev-meta-item" *ngIf="a.score!=null">
+                <i class="pi pi-chart-bar" style="font-size:9px"></i>
+                Score : <b [style.color]="getScoreColor(a.score)">{{a.score}}/100</b>
+              </span>
+            </div>
+
+            <!-- Barre de score -->
+            <div class="dev-score-bar" *ngIf="a.score!=null">
+              <div class="dev-score-fill"
+                   [style.width]="a.score+'%'"
+                   [style.background]="getScoreColor(a.score)">
+              </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="dev-audit-tags">
+              <span class="dev-tag" *ngIf="a.qdrant?.level==='WARNING'"
+                    style="color:#f59e0b;background:rgba(245,158,11,0.1)">
+                ⚠ Spec similaire
+              </span>
+              <span class="dev-tag" *ngIf="a.qdrant?.level==='BLOCKED'"
+                    style="color:#f43f5e;background:rgba(244,63,94,0.1)">
+                🚫 Doublon
+              </span>
+              <span class="dev-tag" *ngIf="a.ai?.rl_final_score"
+                    style="color:#c042ff;background:rgba(192,66,255,0.1)">
+                RL {{a.ai.rl_final_score}}/100
+              </span>
+              <span class="dev-tag" *ngIf="a.status==='PUBLISHED'"
+                    style="color:#00f2ff;background:rgba(0,242,255,0.1)">
+                🌐 WSO2
+              </span>
+              <span class="dev-tag" *ngIf="a.ai?.recorrect_cycles>0"
+                    style="color:#3b82f6;background:rgba(59,130,246,0.1)">
+                🔄 Recorrigé ×{{a.ai.recorrect_cycles}}
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- COL DROITE : Détail de l'audit sélectionné -->
+    <div class="dev-detail-panel custom-scroll" *ngIf="selectedAudit">
+
+      <!-- Header détail -->
+      <div class="dev-detail-header">
+        <div class="dev-detail-icon"
+             [style.background]="getStatusColor(selectedAudit.status)+'18'"
+             [style.border-color]="getStatusColor(selectedAudit.status)+'40'">
+          <i class="pi pi-file-edit"
+             [style.color]="getStatusColor(selectedAudit.status)"></i>
+        </div>
+        <div class="dev-detail-title">
+          <div class="dev-detail-name">{{selectedAudit.spec_id}}</div>
+          <div class="dev-detail-meta">
+            #{{selectedAudit.id}} · {{formatDate(selectedAudit.timestamp)}}
+          </div>
+        </div>
+        <span class="dev-status-big"
+              [style.color]="getStatusColor(selectedAudit.status)">
+          {{getStatusIcon(selectedAudit.status)}} {{selectedAudit.status}}
+        </span>
+      </div>
+
+      <!-- Scores -->
+      <div class="dev-detail-scores">
+        <div class="dev-score-card">
+          <div class="dev-score-num"
+               [style.color]="getScoreColor(selectedAudit.score)">
+            {{selectedAudit.score ?? '—'}}
+          </div>
+          <div class="dev-score-lbl">Score Spectral</div>
+          <div class="dev-score-bar">
+            <div class="dev-score-fill"
+                 [style.width]="(selectedAudit.score||0)+'%'"
+                 [style.background]="getScoreColor(selectedAudit.score)"></div>
+          </div>
+        </div>
+        <div class="dev-score-card" *ngIf="selectedAudit.ai?.rl_final_score">
+          <div class="dev-score-num"
+               [style.color]="getScoreColor(selectedAudit.ai.rl_final_score)">
+            {{selectedAudit.ai.rl_final_score}}
+          </div>
+          <div class="dev-score-lbl">Score RL (IA)</div>
+          <div class="dev-score-bar">
+            <div class="dev-score-fill"
+                 [style.width]="selectedAudit.ai.rl_final_score+'%'"
+                 [style.background]="getScoreColor(selectedAudit.ai.rl_final_score)"></div>
+          </div>
+        </div>
+        <div class="dev-score-card" *ngIf="getTestSummary()">
+          <div class="dev-score-num"
+               [style.color]="getTestSummary()?.pass_rate>=75?'#22c55e':'#f43f5e'">
+            {{getTestSummary()?.pass_rate ?? 0}}%
+          </div>
+          <div class="dev-score-lbl">Tests passés</div>
+          <div class="dev-score-bar">
+            <div class="dev-score-fill"
+                 [style.width]="(getTestSummary()?.pass_rate||0)+'%'"
+                 [style.background]="getTestSummary()?.pass_rate>=75?'#22c55e':'#f43f5e'"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Experts MoE -->
+      <div class="dev-section" *ngIf="selectedAudit.ia_eval">
+        <div class="dev-section-title">
+          <i class="pi pi-users" style="color:#c042ff"></i>
+          Analyse IA — Experts MoE
+        </div>
+        <div class="dev-experts">
+          <div class="dev-expert-row">
+            <span class="dev-expert-name" style="color:#c042ff">Design</span>
+            <div class="dev-expert-bar">
+              <div [style.width]="(selectedAudit.ia_eval.design_score||0)+'%'"
+                   style="background:#c042ff"></div>
+            </div>
+            <span class="dev-expert-val" style="color:#c042ff">
+              {{selectedAudit.ia_eval.design_score}}/100
+            </span>
+          </div>
+          <div class="dev-expert-row">
+            <span class="dev-expert-name" style="color:#f59e0b">Security</span>
+            <div class="dev-expert-bar">
+              <div [style.width]="(selectedAudit.ia_eval.security_score||0)+'%'"
+                   style="background:#f59e0b"></div>
+            </div>
+            <span class="dev-expert-val" style="color:#f59e0b">
+              {{selectedAudit.ia_eval.security_score}}/100
+            </span>
+          </div>
+          <div class="dev-expert-row">
+            <span class="dev-expert-name" style="color:#22c55e">BIAT Policy</span>
+            <div class="dev-expert-bar">
+              <div [style.width]="(selectedAudit.ia_eval.chairman_score||0)+'%'"
+                   style="background:#22c55e"></div>
+            </div>
+            <span class="dev-expert-val" style="color:#22c55e">
+              {{selectedAudit.ia_eval.chairman_score}}/100
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statut pipeline -->
+      <div class="dev-section">
+        <div class="dev-section-title">
+          <i class="pi pi-list-check" style="color:#00f2ff"></i>
+          Statut du pipeline
+        </div>
+        <div class="dev-pipeline-steps">
+          <div class="dev-pipe-step" [class.dev-pipe-done]="true">
+            <div class="dev-pipe-icon">📥</div>
+            <div class="dev-pipe-name">Import</div>
+            <div class="dev-pipe-status" style="color:#22c55e">✓</div>
+          </div>
+          <div class="dev-pipe-arrow">›</div>
+          <div class="dev-pipe-step" [class.dev-pipe-done]="selectedAudit.score!=null">
+            <div class="dev-pipe-icon">🔍</div>
+            <div class="dev-pipe-name">Spectral</div>
+            <div class="dev-pipe-status"
+                 [style.color]="selectedAudit.score!=null?getScoreColor(selectedAudit.score):'#484f58'">
+              {{selectedAudit.score!=null ? (selectedAudit.score+'/100') : '—'}}
+            </div>
+          </div>
+          <div class="dev-pipe-arrow">›</div>
+          <div class="dev-pipe-step" [class.dev-pipe-done]="selectedAudit.qdrant">
+            <div class="dev-pipe-icon">🧠</div>
+            <div class="dev-pipe-name">Qdrant</div>
+            <div class="dev-pipe-status"
+                 [style.color]="getQdrantColor(selectedAudit.qdrant?.level)">
+              {{selectedAudit.qdrant?.level || '—'}}
+            </div>
+          </div>
+          <div class="dev-pipe-arrow">›</div>
+          <div class="dev-pipe-step" [class.dev-pipe-done]="selectedAudit.ai?.rl_final_score">
+            <div class="dev-pipe-icon">🤖</div>
+            <div class="dev-pipe-name">MoE</div>
+            <div class="dev-pipe-status"
+                 [style.color]="selectedAudit.ai?.rl_final_score?getScoreColor(selectedAudit.ai.rl_final_score):'#484f58'">
+              {{selectedAudit.ai?.rl_final_score ? (selectedAudit.ai.rl_final_score+'/100') : '—'}}
+            </div>
+          </div>
+          <div class="dev-pipe-arrow">›</div>
+          <div class="dev-pipe-step" [class.dev-pipe-done]="getTestSummary()">
+            <div class="dev-pipe-icon">🧪</div>
+            <div class="dev-pipe-name">Tests</div>
+            <div class="dev-pipe-status"
+                 [style.color]="getTestStatus()==='TESTS_PASSED'?'#22c55e':'#f43f5e'">
+              {{getTestStatus()==='TESTS_PASSED'?'PASSED':getTestStatus()==='TESTS_FAILED'?'FAILED':'—'}}
+            </div>
+          </div>
+          <div class="dev-pipe-arrow">›</div>
+          <div class="dev-pipe-step"
+               [class.dev-pipe-done]="selectedAudit.status==='PUBLISHED'||selectedAudit.status==='HUMAN_APPROVED'">
+            <div class="dev-pipe-icon">👤</div>
+            <div class="dev-pipe-name">HITL</div>
+            <div class="dev-pipe-status"
+                 [style.color]="selectedAudit.status==='PUBLISHED'||selectedAudit.status==='HUMAN_APPROVED'?'#22c55e':'#484f58'">
+              {{selectedAudit.status==='PUBLISHED'?'Publié':selectedAudit.status==='HUMAN_APPROVED'?'Approuvé':'En attente'}}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- YAML corrigé -->
+      <div class="dev-section"
+           *ngIf="selectedAudit.corrected_yaml || selectedAudit.ai?.corrected_yaml">
+        <div class="dev-section-title">
+          <i class="pi pi-file-edit" style="color:#22c55e"></i>
+          YAML corrigé par l'IA
+          <span class="dev-yaml-model">{{selectedAudit.ai?.model || 'gpt-oss-120b'}}</span>
+          <button class="dev-yaml-dl" (click)="downloadYaml()">
+            <i class="pi pi-download"></i> Télécharger
+          </button>
+        </div>
+        <pre class="dev-yaml-preview custom-scroll">{{(selectedAudit.corrected_yaml || selectedAudit.ai?.corrected_yaml) | slice:0:800}}
+{{(selectedAudit.corrected_yaml || selectedAudit.ai?.corrected_yaml)?.length > 800 ? '...' : ''}}</pre>
+      </div>
+
+      <!-- Violations -->
+      <div class="dev-section" *ngIf="selectedAudit.issues_count > 0">
+        <div class="dev-section-title">
+          <i class="pi pi-exclamation-triangle" style="color:#f59e0b"></i>
+          Violations détectées ({{selectedAudit.issues_count}})
+        </div>
+        <div class="dev-violations">
+          <div class="dev-violation-item"
+               *ngFor="let v of ($any(selectedAudit.issues_detail) || []) | slice:0:5">
+            <span class="dev-viol-sev"
+                  [style.color]="$any(v).severity===0?'#f43f5e':'#f59e0b'">
+              {{$any(v).severity===0 ? 'ERROR' : 'WARN'}}
+            </span>
+            <span class="dev-viol-code">[{{$any(v).code}}]</span>
+            <span class="dev-viol-msg">{{$any(v).message}}</span>
+          </div>
+          <div class="dev-viol-more"
+               *ngIf="selectedAudit.issues_count > 5">
+            +{{selectedAudit.issues_count - 5}} violations supplémentaires
+          </div>
+        </div>
+      </div>
+
+      <!-- WSO2 si publié -->
+      <div class="dev-section dev-section-success"
+           *ngIf="selectedAudit.status==='PUBLISHED'">
+        <div class="dev-section-title">
+          <i class="pi pi-cloud-upload" style="color:#22c55e"></i>
+          Publié sur WSO2 API Manager
+        </div>
+        <div class="dev-wso2-info">
+          <div class="dev-wso2-row">
+            <span>API</span>
+            <span style="color:#22c55e;font-family:monospace">
+              {{selectedAudit.spec_id?.replace('.yaml','')}}
+            </span>
+          </div>
+          <div class="dev-wso2-row">
+            <span>Statut</span>
+            <span style="color:#22c55e">🌐 PUBLISHED</span>
+          </div>
+          <div class="dev-wso2-links">
+            <a href="https://localhost:9443/devportal/apis" target="_blank"
+               class="dev-wso2-link">
+              🛒 Dev Portal
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bouton soumettre une nouvelle -->
+      <div class="dev-submit-section">
+        <a routerLink="/" class="dev-submit-btn">
+          <i class="pi pi-upload"></i>
+          Soumettre une nouvelle spec
+        </a>
+        <button class="dev-pdf-btn" (click)="downloadPdf()">
+          <i class="pi pi-file-pdf" style="color:#f43f5e"></i>
+          Rapport PDF
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Empty state -->
+    <div class="dev-detail-empty" *ngIf="!selectedAudit">
+      <i class="pi pi-arrow-left" style="font-size:2rem;color:#484f58"></i>
+      <span>Sélectionnez un audit pour voir les détails</span>
+      <a routerLink="/" class="dev-submit-link">
+        <i class="pi pi-plus"></i> Soumettre votre première spec
+      </a>
+    </div>
+
+  </div>
+</div>

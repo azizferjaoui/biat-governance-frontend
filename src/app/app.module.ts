@@ -21,6 +21,7 @@ import { ApiInventoryComponent }       from './pages/api-inventory/api-inventory
 import { AiSemanticAnalysisComponent } from './pages/ai-semantic-analysis/ai-semantic-analysis.component';
 import { QdrantPanelComponent }        from './pages/api-inventory/qdrant-panel/qdrant-panel.component';
 import { AdminComponent }              from './pages/admin/admin.component';
+import { DeveloperComponent }          from './pages/developer/developer.component';
 import {
   EvTypeLabelPipe, FindByIdPipe,
   AnyPendingPipe, CountPendingPipe
@@ -45,6 +46,7 @@ function initKeycloak(kc: KeycloakService) {
     ApiImportComponent, ApiInventoryComponent,
     AiSemanticAnalysisComponent, QdrantPanelComponent,
     AdminComponent, AiAgentComponent,
+    DeveloperComponent,
     EvTypeLabelPipe, FindByIdPipe, AnyPendingPipe, CountPendingPipe,
   ],
   imports: [

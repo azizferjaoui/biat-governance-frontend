@@ -691,6 +691,18 @@ export class AdminComponent implements OnInit, OnDestroy {
     });
   }
 
+
+  getFallbackChain(): string[] {
+    return [
+      this.llmActiveModel || 'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'meta-llama/llama-4-scout-17b-16e-instruct',
+      'groq/compound-mini',
+    ];
+  }
+
   getLatPct(ms: number): number {
     if (!ms) return 0;
     return Math.min(100, Math.round((ms / 8000) * 100));
@@ -994,39 +1006,71 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   recorrectAndRetest(audit: any): void {
+    console.log('[Recorrect] Démarrage pour audit', audit.id, 'status:', this.getTestStatus(audit));
+    console.log('[Recorrect] testing_pipeline:', audit.ai?.testing_pipeline || audit.ai_analysis?.testing_pipeline);
     this.actionLoading = audit.id;
     this.addTestingLog('MoE', '🔄 Recorrection en cours — injection des violations Schemathesis...', 'tag-warn');
 
     this.http.post<any>(`${this.API_URL}/agent/recorrect/${audit.id}`, {}).subscribe({
       next: (res) => {
         this.actionLoading = null;
+        console.log('[Recorrect] Réponse reçue:', res);
+
         if (res.error) {
           this.addTestingLog('Recorrect', `✗ Erreur : ${res.error}`, 'tag-fail');
           return;
         }
-        this.addTestingLog('MoE', `✅ ${res.violations_fixed} violations corrigées par ${res.model}`, 'tag-pass');
+
         const tp = res.testing;
+        this.addTestingLog('MoE', `✅ ${res.violations_fixed ?? 0} violations corrigées par ${res.model}`, 'tag-pass');
         if (tp) {
           this.addTestingLog('Testing',
-            `${tp.status} — Pass rate: ${res.pass_rate}%`,
+            `${tp.status} — Pass rate: ${res.pass_rate ?? tp?.summary?.pass_rate ?? 0}%`,
             tp.status === 'TESTS_PASSED' ? 'tag-pass' : 'tag-warn');
         }
-        // Mettre à jour l'audit sélectionné
-        if (res.new_yaml) {
-          if (!audit.ai) audit.ai = {};
-          audit.ai.corrected_yaml   = res.new_yaml;
-          audit.ai.testing_pipeline = tp;
-          if (this.selectedAudit?.id === audit.id) {
-            this.selectedAudit = { ...this.selectedAudit,
-              ai: { ...this.selectedAudit.ai, corrected_yaml: res.new_yaml, testing_pipeline: tp }
+
+        // Recharger l'audit complet depuis la DB
+        this.http.get<any>(`${this.API_URL}/agent/result/${audit.id}`).subscribe({
+          next: (fresh) => {
+            if (fresh.ai_analysis && typeof fresh.ai_analysis === 'string') {
+              try { fresh.ai_analysis = JSON.parse(fresh.ai_analysis); } catch {}
+            }
+            const ai = fresh.ai_analysis || {};
+            const patch = {
+              ai          : ai,
+              ai_analysis : ai,
+              status      : fresh.status,
+              score       : fresh.score,
+              corrected_yaml: ai.corrected_yaml,
+              testing_pipeline: ai.testing_pipeline,
             };
+            this.updateAudit(audit.id, patch);
+            if (this.selectedAudit?.id === audit.id) {
+              this.selectedAudit = { ...this.selectedAudit, ...patch };
+            }
+            this.addTestingLog('Recorrect', `✓ Audit #${audit.id} rechargé depuis DB`, 'tag-pass');
+            this.cdr.detectChanges();
+          },
+          error: () => {
+            // Fallback si /results/:id n'existe pas
+            if (res.new_yaml) {
+              if (!audit.ai) audit.ai = {};
+              audit.ai.corrected_yaml   = res.new_yaml;
+              audit.ai.testing_pipeline = tp;
+              if (this.selectedAudit?.id === audit.id) {
+                this.selectedAudit = { ...this.selectedAudit,
+                  ai: { ...this.selectedAudit.ai, corrected_yaml: res.new_yaml, testing_pipeline: tp }
+                };
+              }
+            }
+            this.cdr.detectChanges();
           }
-        }
-        this.cdr.detectChanges();
+        });
       },
-      error: () => {
+      error: (err) => {
         this.actionLoading = null;
-        this.addTestingLog('Recorrect', '✗ Erreur réseau', 'tag-fail');
+        console.error('[Recorrect] Erreur HTTP:', err);
+        this.addTestingLog('Recorrect', `✗ Erreur : ${err.status} ${err.message}`, 'tag-fail');
       }
     });
   }
@@ -1045,7 +1089,7 @@ export class AdminComponent implements OnInit, OnDestroy {
           this.cdr.detectChanges();
         },
         error: () => { this.actionLoading = null; }
-      }); 
+      });
   }
 
 

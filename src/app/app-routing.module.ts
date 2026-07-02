@@ -6,6 +6,8 @@ import { ApiImportComponent }          from './pages/api-import/api-import.compo
 import { ApiInventoryComponent }       from './pages/api-inventory/api-inventory.component';
 import { AiSemanticAnalysisComponent } from './pages/ai-semantic-analysis/ai-semantic-analysis.component';
 import { AdminComponent }              from './pages/admin/admin.component';
+import { DeveloperComponent }              from './pages/developer/developer.component';
+
 
 const routes: Routes = [
   {
@@ -28,6 +30,11 @@ const routes: Routes = [
     canActivate: [RoleGuard],
     data      : { roles: ['owner'] },
   },
+  {
+  path: 'developer',
+  component: DeveloperComponent,
+  canActivate: [RoleGuard]
+},
   {
     // Admin — owner seulement
     path      : 'admin',

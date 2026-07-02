@@ -1,1414 +1,1466 @@
-  <div class="admin-shell">
+<div class="admin-shell">
 
-    <!-- TOPBAR -->
-    <div class="admin-topbar">
-      <div class="admin-topbar-left">
-        <div class="admin-logo">
-          <img src="assets/biat-it.jpg" alt="BIAT" class="admin-biat-logo" />
-          <span class="admin-badge">Governance</span>
-        </div>
+  <!-- TOPBAR -->
+  <div class="admin-topbar">
+    <div class="admin-topbar-left">
+      <div class="admin-logo">
+        <img src="assets/biat-it.jpg" alt="BIAT" class="admin-biat-logo" />
+        <span class="admin-badge">Governance</span>
       </div>
-      <div class="admin-topbar-center">
-        <button class="tab-btn" [class.tab-active]="selectedTab==='dashboard'" (click)="selectedTab='dashboard'">
-          <i class="pi pi-th-large"></i> Dashboard
-        </button>
-        <button class="tab-btn" [class.tab-active]="selectedTab==='live'" (click)="selectedTab='live'">
-          <i class="pi pi-wifi"></i> Live
-          <span class="tab-badge live-badge" *ngIf="getLiveCount()>0">{{getLiveCount()}}</span>
-        </button>
-        <button class="tab-btn" [class.tab-active]="selectedTab==='audits'" (click)="selectedTab='audits'">
-          <i class="pi pi-list"></i> Tous les audits
-          <span class="tab-badge">{{audits.length}}</span>
-        </button>
-        <button class="tab-btn" [class.tab-active]="selectedTab==='import'" (click)="selectedTab='import'">
-          <i class="pi pi-upload"></i> API Import
-        </button>
-        <button class="tab-btn" [class.tab-active]="selectedTab==='llm'" (click)="selectedTab='llm'; loadLlmModels()">
-          🏆 LLM Arena
-        </button>
+    </div>
+    <div class="admin-topbar-center">
+      <button class="tab-btn" [class.tab-active]="selectedTab==='dashboard'" (click)="selectedTab='dashboard'">
+        <i class="pi pi-th-large"></i> Dashboard
+      </button>
+      <button class="tab-btn" [class.tab-active]="selectedTab==='live'" (click)="selectedTab='live'">
+        <i class="pi pi-wifi"></i> Live
+        <span class="tab-badge live-badge" *ngIf="getLiveCount()>0">{{getLiveCount()}}</span>
+      </button>
+      <button class="tab-btn" [class.tab-active]="selectedTab==='audits'" (click)="selectedTab='audits'">
+        <i class="pi pi-list"></i> Tous les audits
+        <span class="tab-badge">{{audits.length}}</span>
+      </button>
+      <button class="tab-btn" [class.tab-active]="selectedTab==='import'" (click)="selectedTab='import'">
+        <i class="pi pi-upload"></i> API Import
+      </button>
+      <button class="tab-btn" [class.tab-active]="selectedTab==='llm'" (click)="selectedTab='llm'; loadLlmModels()">
+        🏆 LLM Arena
+      </button>
+    </div>
+    <div class="admin-topbar-right">
+      <button class="refresh-db-btn" (click)="refreshAll()" [disabled]="loadingAudits">
+        <i class="pi pi-refresh" [class.pi-spin]="loadingAudits"></i>
+        <span>{{loadingAudits ? 'Chargement...' : 'Actualiser'}}</span>
+      </button>
+      <div class="ws-status" [class.ws-ok]="wsStatus==='connected'" [class.ws-err]="wsStatus==='disconnected'" (click)="reconnect()">
+        <div class="ws-dot"></div>
+        <span>{{wsStatus==='connected'?'WS Live':wsStatus==='connecting'?'Connexion...':'Hors ligne'}}</span>
       </div>
-      <div class="admin-topbar-right">
-        <button class="refresh-db-btn" (click)="refreshAll()" [disabled]="loadingAudits">
-          <i class="pi pi-refresh" [class.pi-spin]="loadingAudits"></i>
-          <span>{{loadingAudits ? 'Chargement...' : 'Actualiser'}}</span>
-        </button>
-        <div class="ws-status" [class.ws-ok]="wsStatus==='connected'" [class.ws-err]="wsStatus==='disconnected'" (click)="reconnect()">
-          <div class="ws-dot"></div>
-          <span>{{wsStatus==='connected'?'WS Live':wsStatus==='connecting'?'Connexion...':'Hors ligne'}}</span>
+      <div class="admin-user-info-block">
+        <div class="admin-avatar" style="background:rgba(244,63,94,0.15);border-color:rgba(244,63,94,0.5)">
+          {{currentUser.name.substring(0,2).toUpperCase()}}
         </div>
-        <div class="admin-user-info-block">
-          <div class="admin-avatar" style="background:rgba(244,63,94,0.15);border-color:rgba(244,63,94,0.5)">
-            {{currentUser.name.substring(0,2).toUpperCase()}}
-          </div>
-          <div class="admin-user-texts">
-            <span class="admin-user-name">{{currentUser.name}}</span>
-            <span class="admin-role-badge" style="color:#f43f5e;background:rgba(244,63,94,0.12)">Owner</span>
-          </div>
+        <div class="admin-user-texts">
+          <span class="admin-user-name">{{currentUser.name}}</span>
+          <span class="admin-role-badge" style="color:#f43f5e;background:rgba(244,63,94,0.12)">Owner</span>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- STATS BAR — KPIs cliquables -->
-    <div class="admin-stats-bar">
-      <div class="gstat-card" (click)="selectedTab='audits';filterStatus=''">
-        <span class="gstat-val">{{stats.total}}</span><span class="gstat-label">Total DB</span>
-      </div>
-      <div class="gstat-card live-stat" (click)="selectedTab='live'">
-        <div class="gstat-pulse" *ngIf="getLiveCount()>0"></div>
-        <span class="gstat-val" style="color:#c042ff">{{getLiveCount()}}</span>
-        <span class="gstat-label">Live session</span>
-      </div>
-      <div class="gstat-card" (click)="selectedTab='audits';filterStatus='PASSED'">
-        <span class="gstat-val" style="color:#22c55e">{{stats.passed}}</span><span class="gstat-label">Passed</span>
-      </div>
-      <div class="gstat-card" (click)="selectedTab='audits';filterStatus='FAILED'">
-        <span class="gstat-val" style="color:#f43f5e">{{stats.failed}}</span><span class="gstat-label">Failed</span>
-      </div>
-      <div class="gstat-card">
-        <span class="gstat-val" style="color:#22c55e">{{stats.approved}}</span><span class="gstat-label">Approuvés</span>
-      </div>
-      <div class="gstat-card">
-        <span class="gstat-val" style="color:#8b949e">{{stats.rejected}}</span><span class="gstat-label">Rejetés</span>
-      </div>
-      <div class="gstat-card">
-        <span class="gstat-val" [style.color]="getScoreColor(stats.avg_score)">{{stats.avg_score.toFixed(1)}}</span>
-        <span class="gstat-label">Score moy.</span>
-      </div>
-      <div class="gstat-card gstat-pending" *ngIf="hasAnyPending()" (click)="selectedTab='audits';filterStatus='FAILED'">
-        <div class="gstat-pulse"></div>
-        <span class="gstat-val" style="color:#f59e0b">{{countPendingAudits()}}</span>
-        <span class="gstat-label">En attente</span>
-      </div>
+  <!-- STATS BAR — KPIs cliquables -->
+  <div class="admin-stats-bar">
+    <div class="gstat-card" (click)="selectedTab='audits';filterStatus=''">
+      <span class="gstat-val">{{stats.total}}</span><span class="gstat-label">Total DB</span>
     </div>
+    <div class="gstat-card live-stat" (click)="selectedTab='live'">
+      <div class="gstat-pulse" *ngIf="getLiveCount()>0"></div>
+      <span class="gstat-val" style="color:#c042ff">{{getLiveCount()}}</span>
+      <span class="gstat-label">Live session</span>
+    </div>
+    <div class="gstat-card" (click)="selectedTab='audits';filterStatus='PASSED'">
+      <span class="gstat-val" style="color:#22c55e">{{stats.passed}}</span><span class="gstat-label">Passed</span>
+    </div>
+    <div class="gstat-card" (click)="selectedTab='audits';filterStatus='FAILED'">
+      <span class="gstat-val" style="color:#f43f5e">{{stats.failed}}</span><span class="gstat-label">Failed</span>
+    </div>
+    <div class="gstat-card">
+      <span class="gstat-val" style="color:#22c55e">{{stats.approved}}</span><span class="gstat-label">Approuvés</span>
+    </div>
+    <div class="gstat-card">
+      <span class="gstat-val" style="color:#8b949e">{{stats.rejected}}</span><span class="gstat-label">Rejetés</span>
+    </div>
+    <div class="gstat-card">
+      <span class="gstat-val" [style.color]="getScoreColor(stats.avg_score)">{{stats.avg_score.toFixed(1)}}</span>
+      <span class="gstat-label">Score moy.</span>
+    </div>
+    <div class="gstat-card gstat-pending" *ngIf="hasAnyPending()" (click)="selectedTab='audits';filterStatus='FAILED'">
+      <div class="gstat-pulse"></div>
+      <span class="gstat-val" style="color:#f59e0b">{{countPendingAudits()}}</span>
+      <span class="gstat-label">En attente</span>
+    </div>
+  </div>
 
-    <div class="admin-content">
+  <div class="admin-content">
 
-      <!-- ═══ DASHBOARD — Statistiques + Pipeline ═══ -->
-      <div class="admin-tab-content" *ngIf="selectedTab==='dashboard'">
-        <div class="dashboard-layout">
+    <!-- ═══ DASHBOARD — Statistiques + Pipeline ═══ -->
+    <div class="admin-tab-content" *ngIf="selectedTab==='dashboard'">
+      <div class="dashboard-layout">
 
-          <!-- COL GAUCHE : Stats visuelles -->
-          <div class="dash-left">
+        <!-- COL GAUCHE : Stats visuelles -->
+        <div class="dash-left">
 
-            <!-- Taux de conformité -->
-            <div class="dash-card">
-              <div class="dash-card-title"><i class="pi pi-chart-pie" style="color:#c042ff"></i> Conformité globale</div>
-              <div class="compliance-ring-wrap">
-                <svg viewBox="0 0 120 120" class="compliance-ring">
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="#1e2635" stroke-width="12"/>
-                  <circle cx="60" cy="60" r="50" fill="none" [attr.stroke]="getScoreColor(getComplianceRate())"
-                          stroke-width="12" stroke-linecap="round"
-                          [attr.stroke-dasharray]="getComplianceDash()" transform="rotate(-90 60 60)"/>
-                </svg>
-                <div class="compliance-center">
-                  <span class="compliance-pct" [style.color]="getScoreColor(getComplianceRate())">{{getComplianceRate()}}%</span>
-                  <span class="compliance-lbl">conformité</span>
-                </div>
-              </div>
-              <!-- Barres stats -->
-              <div class="stat-bars">
-                <div class="stat-bar-row">
-                  <span class="sbr-label">Passed</span>
-                  <div class="sbr-track"><div class="sbr-fill" style="background:#22c55e" [style.width]="(stats.total?stats.passed/stats.total*100:0)+'%'"></div></div>
-                  <span class="sbr-val" style="color:#22c55e">{{stats.passed}}</span>
-                </div>
-                <div class="stat-bar-row">
-                  <span class="sbr-label">Failed</span>
-                  <div class="sbr-track"><div class="sbr-fill" style="background:#f43f5e" [style.width]="(stats.total?stats.failed/stats.total*100:0)+'%'"></div></div>
-                  <span class="sbr-val" style="color:#f43f5e">{{stats.failed}}</span>
-                </div>
-                <div class="stat-bar-row">
-                  <span class="sbr-label">Approuvés</span>
-                  <div class="sbr-track"><div class="sbr-fill" style="background:#3b82f6" [style.width]="(stats.total?stats.approved/stats.total*100:0)+'%'"></div></div>
-                  <span class="sbr-val" style="color:#3b82f6">{{stats.approved}}</span>
-                </div>
-                <div class="stat-bar-row">
-                  <span class="sbr-label">Rejetés</span>
-                  <div class="sbr-track"><div class="sbr-fill" style="background:#8b949e" [style.width]="(stats.total?stats.rejected/stats.total*100:0)+'%'"></div></div>
-                  <span class="sbr-val" style="color:#8b949e">{{stats.rejected}}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Scores MoE moyens -->
-            <div class="dash-card">
-              <div class="dash-card-title"><i class="pi pi-users" style="color:#c042ff"></i> Experts MoE — moyennes</div>
-              <div class="experts-bars">
-                <div class="eb-row" *ngFor="let e of getExpertStats()">
-                  <div class="eb-header"><span class="eb-name">{{e.name}}</span><span class="eb-val" [style.color]="e.color">{{e.avg.toFixed(1)}}</span></div>
-                  <div class="eb-bar"><div class="eb-fill" [style.width]="e.avg+'%'" [style.background]="e.color"></div></div>
-                  <div class="eb-meta">
-                    <span class="eb-weight">w_rl = {{e.weight.toFixed(2)}}</span>
-                    <span class="eb-trend" [style.color]="e.color">{{getTrend(e.weight)}}</span>
-                  </div>
-                </div>
-              </div>
-              <!-- Modèle LLM utilisé -->
-              <div class="llm-model-tag">
-                <i class="pi pi-microchip" style="font-size:0.7rem;color:#00f2ff"></i>
-                <span>{{selectedAudit?.ai?.model || 'gpt-oss-120b'}}</span>
-                <span class="llm-on-demand">on-demand</span>
+          <!-- Taux de conformité -->
+          <div class="dash-card">
+            <div class="dash-card-title"><i class="pi pi-chart-pie" style="color:#c042ff"></i> Conformité globale</div>
+            <div class="compliance-ring-wrap">
+              <svg viewBox="0 0 120 120" class="compliance-ring">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#1e2635" stroke-width="12"/>
+                <circle cx="60" cy="60" r="50" fill="none" [attr.stroke]="getScoreColor(getComplianceRate())"
+                        stroke-width="12" stroke-linecap="round"
+                        [attr.stroke-dasharray]="getComplianceDash()" transform="rotate(-90 60 60)"/>
+              </svg>
+              <div class="compliance-center">
+                <span class="compliance-pct" [style.color]="getScoreColor(getComplianceRate())">{{getComplianceRate()}}%</span>
+                <span class="compliance-lbl">conformité</span>
               </div>
             </div>
-
-          </div>
-
-          <!-- COL CENTRE : Pipeline temps réel MIS EN VALEUR -->
-          <div class="dash-center">
-
-            <!-- Pipeline Live — Redesign Intelligent -->
-            <div class="dash-card pipeline-live-card-v2">
-
-              <!-- Header -->
-              <div class="plv2-header">
-                <div class="plv2-title">
-                  <div class="plv2-live-dot" [class.plv2-dot-on]="wsStatus==='connected'"></div>
-                  <span>Pipeline MoE — Temps réel</span>
-                  <span class="plv2-ev-count">{{liveEvents.length}} événements</span>
-                </div>
-                <span class="plv2-ws-badge" [class.plv2-ws-on]="wsStatus==='connected'">
-                  WS {{wsStatus==='connected' ? 'connecté' : 'déconnecté'}}
-                </span>
+            <!-- Barres stats -->
+            <div class="stat-bars">
+              <div class="stat-bar-row">
+                <span class="sbr-label">Passed</span>
+                <div class="sbr-track"><div class="sbr-fill" style="background:#22c55e" [style.width]="(stats.total?stats.passed/stats.total*100:0)+'%'"></div></div>
+                <span class="sbr-val" style="color:#22c55e">{{stats.passed}}</span>
               </div>
-
-              <!-- Stages horizontaux -->
-              <div class="plv2-stages">
-                <ng-container *ngFor="let s of getPipelineStages(); let last=last">
-                  <div class="plv2-stage" [class.plv2-stage-active]="pipelineActive===s.id"
-                      (click)="selectStage(s.id)">
-                    <div class="plv2-stage-icon"
-                        [class]="'plv2-stage-icon ' + getStageClass(s.state)"
-                        [style.border-color]="s.color+'60'"
-                        [style.background]="s.state==='idle' ? 'transparent' : s.color+'15'"
-                        [style.box-shadow]="getStageGlow(s)">
-                      <span style="font-size:17px;line-height:1">{{s.emoji}}</span>
-                    </div>
-                    <div class="plv2-stage-name">{{s.name}}</div>
-                    <div class="plv2-stage-count" [style.color]="s.state==='idle'?'var(--color-text-tertiary)':s.color">
-                      {{s.count || 0}}
-                    </div>
-                    <div class="plv2-stage-sub">{{s.sub}}</div>
-                    <div class="plv2-stage-bar"
-                        [style.background]="s.color"
-                        [style.width]="s.state==='done'||s.state==='run' ? '100%' : '0%'"
-                        [style.opacity]="s.state==='run' ? '0.5' : '1'">
-                    </div>
-                  </div>
-                  <div class="plv2-arrow" *ngIf="!last" [style.color]="s.color+'80'">›</div>
-                </ng-container>
+              <div class="stat-bar-row">
+                <span class="sbr-label">Failed</span>
+                <div class="sbr-track"><div class="sbr-fill" style="background:#f43f5e" [style.width]="(stats.total?stats.failed/stats.total*100:0)+'%'"></div></div>
+                <span class="sbr-val" style="color:#f43f5e">{{stats.failed}}</span>
               </div>
-
-              <!-- Testing Panel (visible si stage testing actif) -->
-              <div class="plv2-test-panel">
-
-                <!-- 2 cartes Dredd + Schemathesis -->
-                <div class="plv2-tools">
-
-                  <!-- Dredd -->
-                  <div class="plv2-tool"
-                      [class.plv2-tool-pass]="selectedAudit && (getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed"
-                      [class.plv2-tool-fail]="selectedAudit && (getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed===false">
-                    <div class="plv2-tool-header">
-                      <span class="plv2-tool-name">Dredd</span>
-                      <span class="plv2-tool-badge"
-                            [class.plv2-tb-pass]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed"
-                            [class.plv2-tb-fail]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed===false"
-                            [class.plv2-tb-idle]="!(getTestingData(selectedAudit) || getLastTestingData())">
-                        {{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed ? 'PASSED' : (getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed===false ? 'FAILED' : 'IDLE'}}
-                      </span>
-                    </div>
-                    <div class="plv2-tool-score">
-                      <span class="plv2-tool-num"
-                            [style.color]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed ? '#22c55e' : (getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed===false ? '#f43f5e' : 'var(--color-text-tertiary)'">
-                        {{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed_count ?? '—'}}
-                      </span>
-                      <span class="plv2-tool-denom" *ngIf="(getTestingData(selectedAudit) || getLastTestingData())?.dredd">
-                        / {{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.total}} endpoints
-                      </span>
-                    </div>
-                    <div class="plv2-tool-bar">
-                      <div class="plv2-tool-fill"
-                          [style.width]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd ? (((getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed_count / (getTestingData(selectedAudit) || getLastTestingData())?.dredd?.total * 100) || 0) + '%' : '0%'"
-                          [style.background]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed ? '#22c55e' : '#f43f5e'">
-                      </div>
-                    </div>
-                    <div class="plv2-tool-desc">Contract testing · status codes · response schemas</div>
-                    <div class="plv2-tool-time" *ngIf="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.duration_ms">
-                      ⏱ {{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.duration_ms}}ms
-                    </div>
-                  </div>
-
-                  <!-- Schemathesis -->
-                  <div class="plv2-tool"
-                      [class.plv2-tool-pass]="selectedAudit && (getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed"
-                      [class.plv2-tool-fail]="selectedAudit && (getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed===false">
-                    <div class="plv2-tool-header">
-                      <span class="plv2-tool-name">Schemathesis</span>
-                      <span class="plv2-tool-badge"
-                            [class.plv2-tb-pass]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed"
-                            [class.plv2-tb-fail]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed===false"
-                            [class.plv2-tb-idle]="!(getTestingData(selectedAudit) || getLastTestingData())">
-                        {{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed ? 'PASSED' : (getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed===false ? 'FAILED' : 'IDLE'}}
-                      </span>
-                    </div>
-                    <div class="plv2-tool-score">
-                      <span class="plv2-tool-num"
-                            [style.color]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed ? '#22c55e' : (getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed===false ? '#f43f5e' : 'var(--color-text-tertiary)'">
-                        {{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed_count ?? '—'}}
-                      </span>
-                      <span class="plv2-tool-denom" *ngIf="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis">
-                        / {{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.total}} schemas
-                      </span>
-                    </div>
-                    <div class="plv2-tool-bar">
-                      <div class="plv2-tool-fill"
-                          [style.width]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis ? (((getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed_count / (getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.total * 100) || 0) + '%' : '0%'"
-                          [style.background]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed ? '#22c55e' : '#f43f5e'">
-                      </div>
-                    </div>
-                    <div class="plv2-tool-desc">Property-based fuzzing · types · contraintes · edge cases</div>
-                    <div class="plv2-tool-time" *ngIf="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.duration_ms">
-                      ⏱ {{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.duration_ms}}ms
-                    </div>
-                  </div>
-
-                </div>
-
-                <!-- Pass rate ring animé -->
-                <div class="plv2-ring-wrap plv2-ring-animated" *ngIf="(getTestingData(selectedAudit) || getLastTestingData()) as td">
-                  <!-- SVG Ring -->
-                  <div class="plv2-ring-svg-wrap">
-                    <svg viewBox="0 0 80 80" width="80" height="80" style="transform:rotate(-90deg)">
-                      <circle cx="40" cy="40" r="32" fill="none" stroke="#1a1f2e" stroke-width="7"/>
-                      <circle cx="40" cy="40" r="32" fill="none"
-                              [attr.stroke]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())"
-                              stroke-width="7" stroke-linecap="round"
-                              stroke-dasharray="201"
-                              [attr.stroke-dashoffset]="201 - (201 * ((getTestingData(selectedAudit) || getLastTestingData())?.summary?.pass_rate ?? 0) / 100)"
-                              class="plv2-ring-arc"/>
-                    </svg>
-                    <div class="plv2-ring-center">
-                      <span class="plv2-ring-pct-big" [style.color]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())">
-                        {{(getTestingData(selectedAudit) || getLastTestingData())?.summary?.pass_rate ?? 0}}%
-                      </span>
-                    </div>
-                  </div>
-                  <!-- Détails -->
-                  <div class="plv2-ring-details">
-                    <div class="plv2-ring-status-badge"
-                        [style.background]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())+'18'"
-                        [style.border-color]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())+'50'"
-                        [style.color]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())">
-                      <span class="plv2-ring-dot" [style.background]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())"></span>
-                      {{(getTestingData(selectedAudit) || getLastTestingData())?.status ?? 'NOT_TESTED'}}
-                    </div>
-                    <div class="plv2-ring-stats">
-                      <div class="plv2-ring-stat">
-                        <span class="plv2-stat-val" style="color:#22c55e">{{(getTestingData(selectedAudit) || getLastTestingData())?.summary?.total_passed ?? 0}}</span>
-                        <span class="plv2-stat-lbl">Passed</span>
-                      </div>
-                      <span class="plv2-ring-stat-sep">/</span>
-                      <div class="plv2-ring-stat">
-                        <span class="plv2-stat-val">{{(getTestingData(selectedAudit) || getLastTestingData())?.summary?.total_tests ?? 0}}</span>
-                        <span class="plv2-stat-lbl">Total</span>
-                      </div>
-                    </div>
-                    <div class="plv2-ring-breakdown">
-                      <span [class.plv2-pass]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed"
-                            [class.plv2-fail]="!(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed">
-                        Dredd {{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed_count ?? 0}}/{{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.total ?? 0}}
-                      </span>
-                      <span style="color:#484f58">·</span>
-                      <span [class.plv2-pass]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed"
-                            [class.plv2-fail]="!(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed">
-                        Schema {{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed_count ?? 0}}/{{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.total ?? 0}}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div class="plv2-ring-wrap plv2-ring-empty" *ngIf="!(getTestingData(selectedAudit) || getLastTestingData())">
-                  <div class="plv2-ring-idle-msg">
-                    <i class="pi pi-info-circle" style="font-size:13px;color:#8b949e"></i>
-                    Sélectionner un audit pour voir les résultats de test
-                  </div>
-                </div>
-
+              <div class="stat-bar-row">
+                <span class="sbr-label">Approuvés</span>
+                <div class="sbr-track"><div class="sbr-fill" style="background:#3b82f6" [style.width]="(stats.total?stats.approved/stats.total*100:0)+'%'"></div></div>
+                <span class="sbr-val" style="color:#3b82f6">{{stats.approved}}</span>
               </div>
-
-              <!-- Terminal log -->
-              <div class="plv2-terminal custom-scroll">
-                <div class="plv2-log-line" *ngFor="let l of testingLogs">
-                  <span class="plv2-log-ts">{{l.ts}}</span>
-                  <span class="plv2-log-tag" [ngClass]="l.cls">[{{l.tag}}]</span>
-                  <span class="plv2-log-msg">{{l.msg}}</span>
-                </div>
-                <div class="plv2-log-line plv2-log-empty" *ngIf="testingLogs.length===0">
-                  <span class="plv2-log-ts">--:--:--</span>
-                  <span class="plv2-log-tag" style="color:#484f58">[Pipeline]</span>
-                  <span class="plv2-log-msg">En attente d'événements WebSocket...</span>
-                </div>
-              </div>
-
-            </div>
-
-
-            
-            <!-- Audits en attente HITL -->
-            <div class="dash-card">
-              <div class="dash-card-title">
-                <i class="pi pi-clock" style="color:#f59e0b"></i> Audits en attente HITL
-                <span class="dash-pending-badge" *ngIf="countPendingAudits()>0">{{countPendingAudits()}} en attente</span>
-              </div>
-              <div class="pending-list custom-scroll">
-                <div class="pending-item" *ngFor="let a of getPendingAudits()" (click)="openAuditReport(a); selectedTab='audits'">
-                  <div class="pi-row1">
-                    <div class="pi-icon" [style.background]="getStatusColor(a.status)+'18'">
-                      <i class="pi pi-file-edit" [style.color]="getStatusColor(a.status)" style="font-size:0.7rem"></i>
-                    </div>
-                    <span class="pi-name">{{a.spec_id}}</span>
-                    <span class="pi-score" [style.color]="getScoreColor(a.score)">{{a.score ?? '—'}}/100</span>
-                  </div>
-                  <div class="pi-row2">
-                    <span class="pi-source">{{a.source}}</span>
-                    <span class="pi-date">{{formatDate(a.timestamp)}}</span>
-                    <div class="pi-actions" *ngIf="canApprove()">
-                      <button class="pi-approve" (click)="$event.stopPropagation();approveAudit(a)">✓</button>
-                      <button class="pi-reject"  (click)="$event.stopPropagation();rejectAudit(a)">✗</button>
-                    </div>
-                  </div>
-                </div>
-                <div class="pending-empty" *ngIf="getPendingAudits().length===0">
-                  <i class="pi pi-check-circle" style="color:#22c55e;font-size:1rem"></i>
-                  <span>Tous les audits ont été traités</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- COL DROITE : RL Weights + derniers audits -->
-          <div class="dash-right">
-
-            <div class="dash-card">
-              <div class="dash-card-title"><i class="pi pi-sliders-h" style="color:#00f2ff"></i> Poids RL en direct</div>
-              <div class="rl-mini-grid">
-                <div class="rl-mini-card" *ngFor="let w of getWeightsList()">
-                  <div class="rl-mini-val" [style.color]="getWeightColor(w.weight)">{{w.weight.toFixed(2)}}</div>
-                  <div class="rl-mini-bar"><div class="rl-mini-fill" [style.width]="(w.weight/2*100)+'%'" [style.background]="getWeightColor(w.weight)"></div></div>
-                  <div class="rl-mini-name">{{w.label}}</div>
-                  <div class="rl-mini-trend" [style.color]="getWeightColor(w.weight)">{{getTrend(w.weight)}}</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="dash-card dash-card-grow">
-              <div class="dash-card-title">
-                <i class="pi pi-list" style="color:#8b949e"></i> Derniers audits
-                <span class="dash-card-sub">{{audits.length}} total</span>
-              </div>
-              <div class="recent-audits custom-scroll">
-                <div class="ra-item" *ngFor="let a of audits.slice(0,12)"
-                    (click)="openAuditReport(a); selectedTab='audits'"
-                    [class.ra-live]="a._origin==='live'">
-                  <div class="ra-origin-dot" [style.background]="a._origin==='live'?'#c042ff':'#30363d'"></div>
-                  <div class="ra-status-dot" [style.background]="getStatusColor(a.status)"></div>
-                  <div class="ra-info">
-                    <span class="ra-name">{{a.spec_id}}</span>
-                    <span class="ra-meta">{{formatDate(a.timestamp)}}</span>
-                  </div>
-                  <div class="ra-right">
-                    <span class="ra-score" [style.color]="getScoreColor(a.score)">{{a.score ?? '—'}}</span>
-                    <span *ngIf="a.qdrant" class="ra-qdrant" [style.color]="getQdrantColor(a.qdrant.level)">{{a.qdrant.level}}</span>
-                  </div>
-                </div>
+              <div class="stat-bar-row">
+                <span class="sbr-label">Rejetés</span>
+                <div class="sbr-track"><div class="sbr-fill" style="background:#8b949e" [style.width]="(stats.total?stats.rejected/stats.total*100:0)+'%'"></div></div>
+                <span class="sbr-val" style="color:#8b949e">{{stats.rejected}}</span>
               </div>
             </div>
           </div>
+
+          <!-- Scores MoE moyens -->
+          <div class="dash-card">
+            <div class="dash-card-title"><i class="pi pi-users" style="color:#c042ff"></i> Experts MoE — moyennes</div>
+            <div class="experts-bars">
+              <div class="eb-row" *ngFor="let e of getExpertStats()">
+                <div class="eb-header"><span class="eb-name">{{e.name}}</span><span class="eb-val" [style.color]="e.color">{{e.avg.toFixed(1)}}</span></div>
+                <div class="eb-bar"><div class="eb-fill" [style.width]="e.avg+'%'" [style.background]="e.color"></div></div>
+                <div class="eb-meta">
+                  <span class="eb-weight">w_rl = {{e.weight.toFixed(2)}}</span>
+                  <span class="eb-trend" [style.color]="e.color">{{getTrend(e.weight)}}</span>
+                </div>
+              </div>
+            </div>
+            <!-- Modèle LLM utilisé -->
+            <div class="llm-model-tag">
+              <i class="pi pi-microchip" style="font-size:0.7rem;color:#00f2ff"></i>
+              <span>{{selectedAudit?.ai?.model || 'gpt-oss-120b'}}</span>
+              <span class="llm-on-demand">on-demand</span>
+            </div>
+          </div>
+
         </div>
-      </div>
 
-      <!-- ═══ LIVE ═══ -->
-      <div class="admin-tab-content" *ngIf="selectedTab==='live'">
-        <div class="live-layout">
-          <div class="live-feed-panel">
+        <!-- COL CENTRE : Pipeline temps réel MIS EN VALEUR -->
+        <div class="dash-center">
+
+          <!-- Pipeline Live — Redesign Intelligent -->
+          <div class="dash-card pipeline-live-card-v2">
+
             <!-- Header -->
-            <div class="live-feed-header">
-              <div class="live-dot-green" [class.live-pulse]="wsStatus==='connected'"></div>
-              <span>Flux temps réel</span>
-              <span class="ws-live-badge" [class.ws-badge-on]="wsStatus==='connected'">
-                {{wsStatus==='connected' ? 'WS connecté' : 'Hors ligne'}}
+            <div class="plv2-header">
+              <div class="plv2-title">
+                <div class="plv2-live-dot" [class.plv2-dot-on]="wsStatus==='connected'"></div>
+                <span>Pipeline MoE — Temps réel</span>
+                <span class="plv2-ev-count">{{liveEvents.length}} événements</span>
+              </div>
+              <span class="plv2-ws-badge" [class.plv2-ws-on]="wsStatus==='connected'">
+                WS {{wsStatus==='connected' ? 'connecté' : 'déconnecté'}}
               </span>
-              <span class="live-count">{{liveEvents.length}} événements</span>
-              <button class="live-clear-btn" (click)="liveEvents=[]; selectedAudit=null; pipelineProgress={import:'idle',spectral:'idle',qdrant:'idle',moe:'idle',testing:'idle',hitl:'idle'}; testingLogs=[]">Vider</button>
             </div>
 
-            <!-- Pipeline progress bar -->
-            <div class="live-pipeline-track" *ngIf="liveEvents.length > 0">
-              <ng-container *ngFor="let s of getLivePipelineStages(); let last=last">
-                <div class="lpt-step">
-                  <div class="lpt-dot"
-                      [class.lpt-done]="s.done"
-                      [class.lpt-active]="s.active && !s.done"
-                      [style.background]="s.done ? s.color+'22' : s.active ? s.color+'18' : 'transparent'"
-                      [style.border-color]="s.done ? s.color : s.active ? s.color : '#30363d'"
-                      [style.color]="s.done ? s.color : s.active ? s.color : '#484f58'">
-                    <i class="pi" [class.pi-check]="s.done" [class.pi-circle-fill]="s.active&&!s.done" [class.pi-circle]="!s.done&&!s.active" style="font-size:0.5rem"></i>
+            <!-- Stages horizontaux -->
+            <div class="plv2-stages">
+              <ng-container *ngFor="let s of getPipelineStages(); let last=last">
+                <div class="plv2-stage" [class.plv2-stage-active]="pipelineActive===s.id"
+                     (click)="selectStage(s.id)">
+                  <div class="plv2-stage-icon"
+                       [class]="'plv2-stage-icon ' + getStageClass(s.state)"
+                       [style.border-color]="s.color+'60'"
+                       [style.background]="s.state==='idle' ? 'transparent' : s.color+'15'"
+                       [style.box-shadow]="getStageGlow(s)">
+                    <span style="font-size:17px;line-height:1">{{s.emoji}}</span>
                   </div>
-                  <span class="lpt-label" [style.color]="s.done ? s.color : s.active ? s.color : '#484f58'">{{s.name}}</span>
+                  <div class="plv2-stage-name">{{s.name}}</div>
+                  <div class="plv2-stage-count" [style.color]="s.state==='idle'?'var(--color-text-tertiary)':s.color">
+                    {{s.count || 0}}
+                  </div>
+                  <div class="plv2-stage-sub">{{s.sub}}</div>
+                  <div class="plv2-stage-bar"
+                       [style.background]="s.color"
+                       [style.width]="s.state==='done'||s.state==='run' ? '100%' : '0%'"
+                       [style.opacity]="s.state==='run' ? '0.5' : '1'">
+                  </div>
                 </div>
-                <div class="lpt-line" *ngIf="!last" [class.lpt-line-done]="s.done"></div>
+                <div class="plv2-arrow" *ngIf="!last" [style.color]="s.color+'80'">›</div>
               </ng-container>
             </div>
 
-            <!-- Events feed -->
-            <div class="live-feed custom-scroll">
-              <div class="live-event"
-                  *ngFor="let ev of liveEvents"
-                  [class.ev-complete]="ev.type==='analysis_complete'"
-                  [class.ev-moe]="ev.type==='moe_result'"
-                  [class.ev-qdrant]="ev.type==='qdrant_result'"
-                  [class.ev-action]="ev.type==='hitl_action'"
-                  (click)="ev.task_id && selectAuditById(ev.task_id)">
-                <div class="ev-left">
-                  <div class="ev-time">{{ev._ts}}</div>
-                  <div class="ev-icon-circle"
-                      [style.background]="ev.color+'15'"
-                      [style.border-color]="ev.color+'35'">
-                    <span [style.color]="ev.color" style="font-size:0.75rem">{{ev.icon}}</span>
-                  </div>
-                </div>
-                <div class="ev-body">
-                  <div class="ev-top-row">
-                    <span class="ev-type-tag"
-                          [style.color]="ev.color"
-                          [style.background]="ev.color+'12'"
-                          [style.border-color]="ev.color+'30'">
-                      {{ev.type | evTypeLabel}}
-                    </span>
-                    <span class="ev-spec-name" *ngIf="ev.spec_id || ev.text">
-                      {{ev.spec_id || (ev.text | slice:0:25)}}
-                    </span>
-                    <span class="ev-rl-badge"
-                          *ngIf="ev.rl_score || ev.ai_score"
-                          [style.color]="getScoreColor(ev.rl_score || ev.ai_score)"
-                          [style.background]="getScoreColor(ev.rl_score || ev.ai_score)+'12'">
-                      RL {{ev.rl_score || ev.ai_score}}/100
+            <!-- Testing Panel (visible si stage testing actif) -->
+            <div class="plv2-test-panel">
+
+              <!-- 2 cartes Dredd + Schemathesis -->
+              <div class="plv2-tools">
+
+                <!-- Dredd -->
+                <div class="plv2-tool"
+                     [class.plv2-tool-pass]="selectedAudit && (getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed"
+                     [class.plv2-tool-fail]="selectedAudit && (getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed===false">
+                  <div class="plv2-tool-header">
+                    <span class="plv2-tool-name">Dredd</span>
+                    <span class="plv2-tool-badge"
+                          [class.plv2-tb-pass]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed"
+                          [class.plv2-tb-fail]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed===false"
+                          [class.plv2-tb-idle]="!(getTestingData(selectedAudit) || getLastTestingData())">
+                      {{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed ? 'PASSED' : (getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed===false ? 'FAILED' : 'IDLE'}}
                     </span>
                   </div>
-                  <div class="ev-text-body">{{ev.text}}</div>
+                  <div class="plv2-tool-score">
+                    <span class="plv2-tool-num"
+                          [style.color]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed ? '#22c55e' : (getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed===false ? '#f43f5e' : 'var(--color-text-tertiary)'">
+                      {{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed_count ?? '—'}}
+                    </span>
+                    <span class="plv2-tool-denom" *ngIf="(getTestingData(selectedAudit) || getLastTestingData())?.dredd">
+                      / {{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.total}} endpoints
+                    </span>
+                  </div>
+                  <div class="plv2-tool-bar">
+                    <div class="plv2-tool-fill"
+                         [style.width]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd ? (((getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed_count / (getTestingData(selectedAudit) || getLastTestingData())?.dredd?.total * 100) || 0) + '%' : '0%'"
+                         [style.background]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed ? '#22c55e' : '#f43f5e'">
+                    </div>
+                  </div>
+                  <div class="plv2-tool-desc">Contract testing · status codes · response schemas</div>
+                  <div class="plv2-tool-time" *ngIf="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.duration_ms">
+                    ⏱ {{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.duration_ms}}ms
+                  </div>
+                </div>
+
+                <!-- Schemathesis -->
+                <div class="plv2-tool"
+                     [class.plv2-tool-pass]="selectedAudit && (getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed"
+                     [class.plv2-tool-fail]="selectedAudit && (getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed===false">
+                  <div class="plv2-tool-header">
+                    <span class="plv2-tool-name">Schemathesis</span>
+                    <span class="plv2-tool-badge"
+                          [class.plv2-tb-pass]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed"
+                          [class.plv2-tb-fail]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed===false"
+                          [class.plv2-tb-idle]="!(getTestingData(selectedAudit) || getLastTestingData())">
+                      {{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed ? 'PASSED' : (getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed===false ? 'FAILED' : 'IDLE'}}
+                    </span>
+                  </div>
+                  <div class="plv2-tool-score">
+                    <span class="plv2-tool-num"
+                          [style.color]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed ? '#22c55e' : (getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed===false ? '#f43f5e' : 'var(--color-text-tertiary)'">
+                      {{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed_count ?? '—'}}
+                    </span>
+                    <span class="plv2-tool-denom" *ngIf="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis">
+                      / {{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.total}} schemas
+                    </span>
+                  </div>
+                  <div class="plv2-tool-bar">
+                    <div class="plv2-tool-fill"
+                         [style.width]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis ? (((getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed_count / (getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.total * 100) || 0) + '%' : '0%'"
+                         [style.background]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed ? '#22c55e' : '#f43f5e'">
+                    </div>
+                  </div>
+                  <div class="plv2-tool-desc">Property-based fuzzing · types · contraintes · edge cases</div>
+                  <div class="plv2-tool-time" *ngIf="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.duration_ms">
+                    ⏱ {{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.duration_ms}}ms
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Pass rate ring animé -->
+              <div class="plv2-ring-wrap plv2-ring-animated" *ngIf="(getTestingData(selectedAudit) || getLastTestingData()) as td">
+                <!-- SVG Ring -->
+                <div class="plv2-ring-svg-wrap">
+                  <svg viewBox="0 0 80 80" width="80" height="80" style="transform:rotate(-90deg)">
+                    <circle cx="40" cy="40" r="32" fill="none" stroke="#1a1f2e" stroke-width="7"/>
+                    <circle cx="40" cy="40" r="32" fill="none"
+                            [attr.stroke]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())"
+                            stroke-width="7" stroke-linecap="round"
+                            stroke-dasharray="201"
+                            [attr.stroke-dashoffset]="201 - (201 * ((getTestingData(selectedAudit) || getLastTestingData())?.summary?.pass_rate ?? 0) / 100)"
+                            class="plv2-ring-arc"/>
+                  </svg>
+                  <div class="plv2-ring-center">
+                    <span class="plv2-ring-pct-big" [style.color]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())">
+                      {{(getTestingData(selectedAudit) || getLastTestingData())?.summary?.pass_rate ?? 0}}%
+                    </span>
+                  </div>
+                </div>
+                <!-- Détails -->
+                <div class="plv2-ring-details">
+                  <div class="plv2-ring-status-badge"
+                       [style.background]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())+'18'"
+                       [style.border-color]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())+'50'"
+                       [style.color]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())">
+                    <span class="plv2-ring-dot" [style.background]="getRingColor(getTestingData(selectedAudit) || getLastTestingData())"></span>
+                    {{(getTestingData(selectedAudit) || getLastTestingData())?.status ?? 'NOT_TESTED'}}
+                  </div>
+                  <div class="plv2-ring-stats">
+                    <div class="plv2-ring-stat">
+                      <span class="plv2-stat-val" style="color:#22c55e">{{(getTestingData(selectedAudit) || getLastTestingData())?.summary?.total_passed ?? 0}}</span>
+                      <span class="plv2-stat-lbl">Passed</span>
+                    </div>
+                    <span class="plv2-ring-stat-sep">/</span>
+                    <div class="plv2-ring-stat">
+                      <span class="plv2-stat-val">{{(getTestingData(selectedAudit) || getLastTestingData())?.summary?.total_tests ?? 0}}</span>
+                      <span class="plv2-stat-lbl">Total</span>
+                    </div>
+                  </div>
+                  <div class="plv2-ring-breakdown">
+                    <span [class.plv2-pass]="(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed"
+                          [class.plv2-fail]="!(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed">
+                      Dredd {{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.passed_count ?? 0}}/{{(getTestingData(selectedAudit) || getLastTestingData())?.dredd?.total ?? 0}}
+                    </span>
+                    <span style="color:#484f58">·</span>
+                    <span [class.plv2-pass]="(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed"
+                          [class.plv2-fail]="!(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed">
+                      Schema {{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.passed_count ?? 0}}/{{(getTestingData(selectedAudit) || getLastTestingData())?.schemathesis?.total ?? 0}}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div class="live-empty" *ngIf="liveEvents.length===0">
-                <i class="pi pi-wifi" style="font-size:1.5rem;color:#484f58"></i>
-                <span>En attente d'événements...</span>
-                <span class="live-empty-hint">Soumettez une spec pour voir le pipeline</span>
+              <div class="plv2-ring-wrap plv2-ring-empty" *ngIf="!(getTestingData(selectedAudit) || getLastTestingData())">
+                <div class="plv2-ring-idle-msg">
+                  <i class="pi pi-info-circle" style="font-size:13px;color:#8b949e"></i>
+                  Sélectionner un audit pour voir les résultats de test
+                </div>
               </div>
+
+            </div>
+
+            <!-- Terminal log -->
+            <div class="plv2-terminal custom-scroll">
+              <div class="plv2-log-line" *ngFor="let l of testingLogs">
+                <span class="plv2-log-ts">{{l.ts}}</span>
+                <span class="plv2-log-tag" [ngClass]="l.cls">[{{l.tag}}]</span>
+                <span class="plv2-log-msg">{{l.msg}}</span>
+              </div>
+              <div class="plv2-log-line plv2-log-empty" *ngIf="testingLogs.length===0">
+                <span class="plv2-log-ts">--:--:--</span>
+                <span class="plv2-log-tag" style="color:#484f58">[Pipeline]</span>
+                <span class="plv2-log-msg">En attente d'événements WebSocket...</span>
+              </div>
+            </div>
+
+          </div>
+
+
+          
+          <!-- Audits en attente HITL -->
+          <div class="dash-card">
+            <div class="dash-card-title">
+              <i class="pi pi-clock" style="color:#f59e0b"></i> Audits en attente HITL
+              <span class="dash-pending-badge" *ngIf="countPendingAudits()>0">{{countPendingAudits()}} en attente</span>
+            </div>
+            <div class="pending-list custom-scroll">
+              <div class="pending-item" *ngFor="let a of getPendingAudits()" (click)="openAuditReport(a); selectedTab='audits'">
+                <div class="pi-row1">
+                  <div class="pi-icon" [style.background]="getStatusColor(a.status)+'18'">
+                    <i class="pi pi-file-edit" [style.color]="getStatusColor(a.status)" style="font-size:0.7rem"></i>
+                  </div>
+                  <span class="pi-name">{{a.spec_id}}</span>
+                  <span class="pi-score" [style.color]="getScoreColor(a.score)">{{a.score ?? '—'}}/100</span>
+                </div>
+                <div class="pi-row2">
+                  <span class="pi-source">{{a.source}}</span>
+                  <span class="pi-date">{{formatDate(a.timestamp)}}</span>
+                  <div class="pi-actions" *ngIf="canApprove()">
+                    <button class="pi-approve" (click)="$event.stopPropagation();approveAudit(a)">✓</button>
+                    <button class="pi-reject"  (click)="$event.stopPropagation();rejectAudit(a)">✗</button>
+                  </div>
+                </div>
+              </div>
+              <div class="pending-empty" *ngIf="getPendingAudits().length===0">
+                <i class="pi pi-check-circle" style="color:#22c55e;font-size:1rem"></i>
+                <span>Tous les audits ont été traités</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- COL DROITE : RL Weights + derniers audits -->
+        <div class="dash-right">
+
+          <div class="dash-card">
+            <div class="dash-card-title"><i class="pi pi-sliders-h" style="color:#00f2ff"></i> Poids RL en direct</div>
+            <div class="rl-mini-grid">
+              <div class="rl-mini-card" *ngFor="let w of getWeightsList()">
+                <div class="rl-mini-val" [style.color]="getWeightColor(w.weight)">{{w.weight.toFixed(2)}}</div>
+                <div class="rl-mini-bar"><div class="rl-mini-fill" [style.width]="(w.weight/2*100)+'%'" [style.background]="getWeightColor(w.weight)"></div></div>
+                <div class="rl-mini-name">{{w.label}}</div>
+                <div class="rl-mini-trend" [style.color]="getWeightColor(w.weight)">{{getTrend(w.weight)}}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-card dash-card-grow">
+            <div class="dash-card-title">
+              <i class="pi pi-list" style="color:#8b949e"></i> Derniers audits
+              <span class="dash-card-sub">{{audits.length}} total</span>
+            </div>
+            <div class="recent-audits custom-scroll">
+              <div class="ra-item" *ngFor="let a of audits.slice(0,12)"
+                   (click)="openAuditReport(a); selectedTab='audits'"
+                   [class.ra-live]="a._origin==='live'">
+                <div class="ra-origin-dot" [style.background]="a._origin==='live'?'#c042ff':'#30363d'"></div>
+                <div class="ra-status-dot" [style.background]="getStatusColor(a.status)"></div>
+                <div class="ra-info">
+                  <span class="ra-name">{{a.spec_id}}</span>
+                  <span class="ra-meta">{{formatDate(a.timestamp)}}</span>
+                </div>
+                <div class="ra-right">
+                  <span class="ra-score" [style.color]="getScoreColor(a.score)">{{a.score ?? '—'}}</span>
+                  <span *ngIf="a.qdrant" class="ra-qdrant" [style.color]="getQdrantColor(a.qdrant.level)">{{a.qdrant.level}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LIVE ═══ -->
+    <div class="admin-tab-content" *ngIf="selectedTab==='live'">
+      <div class="live-layout">
+        <div class="live-feed-panel">
+          <!-- Header -->
+          <div class="live-feed-header">
+            <div class="live-dot-green" [class.live-pulse]="wsStatus==='connected'"></div>
+            <span>Flux temps réel</span>
+            <span class="ws-live-badge" [class.ws-badge-on]="wsStatus==='connected'">
+              {{wsStatus==='connected' ? 'WS connecté' : 'Hors ligne'}}
+            </span>
+            <span class="live-count">{{liveEvents.length}} événements</span>
+            <button class="live-clear-btn" (click)="liveEvents=[]; selectedAudit=null; pipelineProgress={import:'idle',spectral:'idle',qdrant:'idle',moe:'idle',testing:'idle',hitl:'idle'}; testingLogs=[]">Vider</button>
+          </div>
+
+          <!-- Pipeline progress bar -->
+          <div class="live-pipeline-track" *ngIf="liveEvents.length > 0">
+            <ng-container *ngFor="let s of getLivePipelineStages(); let last=last">
+              <div class="lpt-step">
+                <div class="lpt-dot"
+                     [class.lpt-done]="s.done"
+                     [class.lpt-active]="s.active && !s.done"
+                     [style.background]="s.done ? s.color+'22' : s.active ? s.color+'18' : 'transparent'"
+                     [style.border-color]="s.done ? s.color : s.active ? s.color : '#30363d'"
+                     [style.color]="s.done ? s.color : s.active ? s.color : '#484f58'">
+                  <i class="pi" [class.pi-check]="s.done" [class.pi-circle-fill]="s.active&&!s.done" [class.pi-circle]="!s.done&&!s.active" style="font-size:0.5rem"></i>
+                </div>
+                <span class="lpt-label" [style.color]="s.done ? s.color : s.active ? s.color : '#484f58'">{{s.name}}</span>
+              </div>
+              <div class="lpt-line" *ngIf="!last" [class.lpt-line-done]="s.done"></div>
+            </ng-container>
+          </div>
+
+          <!-- Events feed -->
+          <div class="live-feed custom-scroll">
+            <div class="live-event"
+                 *ngFor="let ev of liveEvents"
+                 [class.ev-complete]="ev.type==='analysis_complete'"
+                 [class.ev-moe]="ev.type==='moe_result'"
+                 [class.ev-qdrant]="ev.type==='qdrant_result'"
+                 [class.ev-action]="ev.type==='hitl_action'"
+                 (click)="ev.task_id && selectAuditById(ev.task_id)">
+              <div class="ev-left">
+                <div class="ev-time">{{ev._ts}}</div>
+                <div class="ev-icon-circle"
+                     [style.background]="ev.color+'15'"
+                     [style.border-color]="ev.color+'35'">
+                  <span [style.color]="ev.color" style="font-size:0.75rem">{{ev.icon}}</span>
+                </div>
+              </div>
+              <div class="ev-body">
+                <div class="ev-top-row">
+                  <span class="ev-type-tag"
+                        [style.color]="ev.color"
+                        [style.background]="ev.color+'12'"
+                        [style.border-color]="ev.color+'30'">
+                    {{ev.type | evTypeLabel}}
+                  </span>
+                  <span class="ev-spec-name" *ngIf="ev.spec_id || ev.text">
+                    {{ev.spec_id || (ev.text | slice:0:25)}}
+                  </span>
+                  <span class="ev-rl-badge"
+                        *ngIf="ev.rl_score || ev.ai_score"
+                        [style.color]="getScoreColor(ev.rl_score || ev.ai_score)"
+                        [style.background]="getScoreColor(ev.rl_score || ev.ai_score)+'12'">
+                    RL {{ev.rl_score || ev.ai_score}}/100
+                  </span>
+                </div>
+                <div class="ev-text-body">{{ev.text}}</div>
+              </div>
+            </div>
+            <div class="live-empty" *ngIf="liveEvents.length===0">
+              <i class="pi pi-wifi" style="font-size:1.5rem;color:#484f58"></i>
+              <span>En attente d'événements...</span>
+              <span class="live-empty-hint">Soumettez une spec pour voir le pipeline</span>
+            </div>
+          </div>
+        </div>
+        <div class="audit-report-panel custom-scroll" *ngIf="selectedAudit">
+          <ng-container *ngTemplateOutlet="auditReportTpl; context:{audit: selectedAudit}"></ng-container>
+        </div>
+        <div class="audit-detail-empty" *ngIf="!selectedAudit">
+          <i class="pi pi-mouse" style="font-size:1.5rem;color:#484f58"></i>
+          <span>Cliquez sur un événement pour voir le rapport</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TOUS LES AUDITS ═══ -->
+    <div class="admin-tab-content" *ngIf="selectedTab==='audits'">
+      <div class="audits-layout">
+        <div class="audits-filters">
+          <div class="view-switch">
+            <button class="vs-btn" [class.vs-active]="auditView==='all'" (click)="auditView='all'">
+              <i class="pi pi-th-large"></i> Tous ({{audits.length}})
+            </button>
+            <button class="vs-btn vs-live" [class.vs-active]="auditView==='live'" (click)="auditView='live'">
+              <div class="vs-live-dot" *ngIf="getLiveCount()>0"></div>
+              <i class="pi pi-wifi"></i> Live ({{getLiveCount()}})
+            </button>
+            <button class="vs-btn" [class.vs-active]="auditView==='history'" (click)="auditView='history'">
+              <i class="pi pi-database"></i> Historique ({{getHistoryCount()}})
+            </button>
+          </div>
+          <div class="af-search-wrap">
+            <i class="pi pi-search" style="position:absolute;left:10px;color:#8b949e;font-size:0.8rem"></i>
+            <input type="text" class="af-search" placeholder="Rechercher une API..."
+                   [value]="searchQuery" (input)="searchQuery=$any($event.target).value"/>
+          </div>
+          <select class="af-select" [value]="filterStatus" (change)="filterStatus=$any($event.target).value">
+            <option value="">Tous statuts</option>
+            <option value="PASSED">PASSED</option>
+            <option value="FAILED">FAILED</option>
+            <option value="HUMAN_APPROVED">APPROUVÉ</option>
+            <option value="HUMAN_REJECTED">REJETÉ</option>
+          </select>
+          <span class="af-count">{{filteredAudits.length}} résultats</span>
+          <button class="af-refresh-btn" (click)="refreshAll()" [disabled]="loadingAudits">
+            <i class="pi pi-refresh" [class.pi-spin]="loadingAudits"></i>
+          </button>
+        </div>
+        <div class="audits-split">
+          <div class="audits-table-wrap custom-scroll">
+            <table class="audits-table">
+              <thead>
+                <tr><th></th><th>ID</th><th>Spec</th><th>Statut</th><th>Score</th><th>Score RL</th><th>Qdrant</th><th>Date</th><th>Actions</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let a of filteredAudits"
+                    [class.row-selected]="selectedAudit?.id===a.id"
+                    [class.row-live]="a._origin==='live'"
+                    (click)="openAuditReport(a)">
+                  <td class="col-origin">
+                    <div class="origin-dot" [style.background]="a._origin==='live'?'#c042ff':'#30363d'" [title]="a._origin==='live'?'Live':'DB'"></div>
+                  </td>
+                  <td class="col-id">#{{a.id}}</td>
+                  <td class="col-spec" [title]="a.spec_id">{{a.spec_id}}</td>
+                  <td><span class="status-pill" [style.color]="getStatusColor(a.status)" [style.background]="getStatusColor(a.status)+'18'">{{a.status}}</span></td>
+                  <td><span [style.color]="getScoreColor(a.score)" style="font-family:monospace;font-weight:700">{{a.score!==null?a.score:'—'}}</span></td>
+                  <td><span [style.color]="getScoreColor(a.ai?.rl_final_score)" style="font-family:monospace;font-weight:700">{{a.ai?.rl_final_score??'—'}}</span></td>
+                  <td>
+                    <span *ngIf="a.qdrant" class="qdrant-pill" [style.color]="getQdrantColor(a.qdrant.level)" [style.background]="getQdrantColor(a.qdrant.level)+'15'">{{a.qdrant.level}}</span>
+                    <span *ngIf="!a.qdrant" style="color:#484f58">—</span>
+                  </td>
+                  <td style="font-size:0.65rem;color:#8b949e">{{formatDate(a.timestamp)}}</td>
+                  <td>
+                    <div class="row-actions" *ngIf="a.status==='FAILED'&&canApprove()">
+                      <button class="ra-approve" (click)="$event.stopPropagation();approveAudit(a)" [disabled]="actionLoading===a.id"><i class="pi pi-check" style="font-size:0.65rem"></i></button>
+                      <button class="ra-reject"  (click)="$event.stopPropagation();rejectAudit(a)"  [disabled]="actionLoading===a.id"><i class="pi pi-times" style="font-size:0.65rem"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="table-loading" *ngIf="loadingAudits">
+              <i class="pi pi-spin pi-spinner" style="font-size:1.2rem;color:#c042ff"></i>
+              <span>Chargement...</span>
+            </div>
+            <div class="table-empty" *ngIf="!loadingAudits&&filteredAudits.length===0">
+              <i class="pi pi-inbox" style="font-size:1.5rem;color:#484f58"></i><span>Aucun audit</span>
             </div>
           </div>
           <div class="audit-report-panel custom-scroll" *ngIf="selectedAudit">
             <ng-container *ngTemplateOutlet="auditReportTpl; context:{audit: selectedAudit}"></ng-container>
           </div>
-          <div class="audit-detail-empty" *ngIf="!selectedAudit">
-            <i class="pi pi-mouse" style="font-size:1.5rem;color:#484f58"></i>
-            <span>Cliquez sur un événement pour voir le rapport</span>
+          <div class="audit-select-hint" *ngIf="!selectedAudit">
+            <i class="pi pi-arrow-left" style="font-size:1rem;color:#484f58"></i>
+            <span>Sélectionnez un audit pour voir le rapport</span>
           </div>
         </div>
       </div>
-
-      <!-- ═══ TOUS LES AUDITS ═══ -->
-      <div class="admin-tab-content" *ngIf="selectedTab==='audits'">
-        <div class="audits-layout">
-          <div class="audits-filters">
-            <div class="view-switch">
-              <button class="vs-btn" [class.vs-active]="auditView==='all'" (click)="auditView='all'">
-                <i class="pi pi-th-large"></i> Tous ({{audits.length}})
-              </button>
-              <button class="vs-btn vs-live" [class.vs-active]="auditView==='live'" (click)="auditView='live'">
-                <div class="vs-live-dot" *ngIf="getLiveCount()>0"></div>
-                <i class="pi pi-wifi"></i> Live ({{getLiveCount()}})
-              </button>
-              <button class="vs-btn" [class.vs-active]="auditView==='history'" (click)="auditView='history'">
-                <i class="pi pi-database"></i> Historique ({{getHistoryCount()}})
-              </button>
-            </div>
-            <div class="af-search-wrap">
-              <i class="pi pi-search" style="position:absolute;left:10px;color:#8b949e;font-size:0.8rem"></i>
-              <input type="text" class="af-search" placeholder="Rechercher une API..."
-                    [value]="searchQuery" (input)="searchQuery=$any($event.target).value"/>
-            </div>
-            <select class="af-select" [value]="filterStatus" (change)="filterStatus=$any($event.target).value">
-              <option value="">Tous statuts</option>
-              <option value="PASSED">PASSED</option>
-              <option value="FAILED">FAILED</option>
-              <option value="HUMAN_APPROVED">APPROUVÉ</option>
-              <option value="HUMAN_REJECTED">REJETÉ</option>
-            </select>
-            <span class="af-count">{{filteredAudits.length}} résultats</span>
-            <button class="af-refresh-btn" (click)="refreshAll()" [disabled]="loadingAudits">
-              <i class="pi pi-refresh" [class.pi-spin]="loadingAudits"></i>
-            </button>
-          </div>
-          <div class="audits-split">
-            <div class="audits-table-wrap custom-scroll">
-              <table class="audits-table">
-                <thead>
-                  <tr><th></th><th>ID</th><th>Spec</th><th>Statut</th><th>Score</th><th>Score RL</th><th>Qdrant</th><th>Date</th><th>Actions</th></tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let a of filteredAudits"
-                      [class.row-selected]="selectedAudit?.id===a.id"
-                      [class.row-live]="a._origin==='live'"
-                      (click)="openAuditReport(a)">
-                    <td class="col-origin">
-                      <div class="origin-dot" [style.background]="a._origin==='live'?'#c042ff':'#30363d'" [title]="a._origin==='live'?'Live':'DB'"></div>
-                    </td>
-                    <td class="col-id">#{{a.id}}</td>
-                    <td class="col-spec" [title]="a.spec_id">{{a.spec_id}}</td>
-                    <td><span class="status-pill" [style.color]="getStatusColor(a.status)" [style.background]="getStatusColor(a.status)+'18'">{{a.status}}</span></td>
-                    <td><span [style.color]="getScoreColor(a.score)" style="font-family:monospace;font-weight:700">{{a.score!==null?a.score:'—'}}</span></td>
-                    <td><span [style.color]="getScoreColor(a.ai?.rl_final_score)" style="font-family:monospace;font-weight:700">{{a.ai?.rl_final_score??'—'}}</span></td>
-                    <td>
-                      <span *ngIf="a.qdrant" class="qdrant-pill" [style.color]="getQdrantColor(a.qdrant.level)" [style.background]="getQdrantColor(a.qdrant.level)+'15'">{{a.qdrant.level}}</span>
-                      <span *ngIf="!a.qdrant" style="color:#484f58">—</span>
-                    </td>
-                    <td style="font-size:0.65rem;color:#8b949e">{{formatDate(a.timestamp)}}</td>
-                    <td>
-                      <div class="row-actions" *ngIf="a.status==='FAILED'&&canApprove()">
-                        <button class="ra-approve" (click)="$event.stopPropagation();approveAudit(a)" [disabled]="actionLoading===a.id"><i class="pi pi-check" style="font-size:0.65rem"></i></button>
-                        <button class="ra-reject"  (click)="$event.stopPropagation();rejectAudit(a)"  [disabled]="actionLoading===a.id"><i class="pi pi-times" style="font-size:0.65rem"></i></button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div class="table-loading" *ngIf="loadingAudits">
-                <i class="pi pi-spin pi-spinner" style="font-size:1.2rem;color:#c042ff"></i>
-                <span>Chargement...</span>
-              </div>
-              <div class="table-empty" *ngIf="!loadingAudits&&filteredAudits.length===0">
-                <i class="pi pi-inbox" style="font-size:1.5rem;color:#484f58"></i><span>Aucun audit</span>
-              </div>
-            </div>
-            <div class="audit-report-panel custom-scroll" *ngIf="selectedAudit">
-              <ng-container *ngTemplateOutlet="auditReportTpl; context:{audit: selectedAudit}"></ng-container>
-            </div>
-            <div class="audit-select-hint" *ngIf="!selectedAudit">
-              <i class="pi pi-arrow-left" style="font-size:1rem;color:#484f58"></i>
-              <span>Sélectionnez un audit pour voir le rapport</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ API IMPORT (intégré dans admin) ═══ -->
-      <div class="admin-tab-content admin-import-tab" *ngIf="selectedTab==='import'">
-        <div class="import-wrapper">
-          <app-api-import></app-api-import>
-        </div>
-      </div>
-
-      <!-- ═══ LLM ARENA ═══ -->
-      <div class="admin-tab-content" *ngIf="selectedTab==='llm'">
-        <div class="llm-arena-page">
-
-          <!-- Header -->
-          <div class="llm-page-header">
-            <div class="llm-page-title">
-              <span style="font-size:22px">🏆</span>
-              <div>
-                <div class="llm-ph-name">LLM Arena</div>
-                <div class="llm-ph-sub">Benchmark automatique Groq · détection et basculement intelligent</div>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <span class="llm-champion-tag">Champion : {{llmActiveModel | slice:0:20}}</span>
-              <button class="llm-page-btn" (click)="triggerLlmDiscovery()">
-                <i class="pi pi-search" style="font-size:11px"></i> Lancer discovery
-              </button>
-              <button class="llm-page-btn" (click)="loadLlmModels()">
-                <i class="pi pi-refresh" style="font-size:11px" [class.pi-spin]="llmLoading"></i> Actualiser
-              </button>
-            </div>
-          </div>
-
-          <!-- KPIs -->
-          <div class="llm-kpi-grid">
-            <div class="llm-kpi-card" style="border:0.5px solid rgba(29,158,117,.3);background:rgba(29,158,117,.04)">
-              <div class="llm-kpi-lbl">🏆 Champion actif</div>
-              <div class="llm-kpi-val green" style="font-size:12px">{{llmActiveModel | slice:0:18}}</div>
-              <div class="llm-kpi-sub" style="color:#0F6E56">auto-sélectionné · score 85/100</div>
-            </div>
-            <div class="llm-kpi-card">
-              <div class="llm-kpi-lbl">Modèles benchmarkés</div>
-              <div class="llm-kpi-val">{{llmModels.length}}</div>
-              <div class="llm-kpi-sub">sur Groq API</div>
-            </div>
-            <div class="llm-kpi-card">
-              <div class="llm-kpi-lbl">Meilleur score</div>
-              <div class="llm-kpi-val green">{{(llmModels | slice:0:1)[0]?.score ?? 0}}/100</div>
-              <div class="llm-kpi-sub">qualité YAML</div>
-            </div>
-            <div class="llm-kpi-card">
-              <div class="llm-kpi-lbl">Auto-check</div>
-              <div class="llm-kpi-val">6h</div>
-              <div class="llm-kpi-sub">scheduler actif</div>
-            </div>
-            <div class="llm-kpi-card">
-              <div class="llm-kpi-lbl">Nouveaux détectés</div>
-              <div class="llm-kpi-val amber">{{getLlmNewCount()}}</div>
-              <div class="llm-kpi-sub">ce cycle</div>
-            </div>
-          </div>
-
-          <!-- Classement table -->
-          <div class="llm-section-card">
-            <div class="llm-section-header">
-              <span class="llm-section-title">Classement des modèles</span>
-              <span class="llm-section-sub">Trié par score qualité YAML décroissant · benchmark BIAT standard</span>
-            </div>
-            <div style="overflow-x:auto">
-              <table class="llma-table">
-                <thead>
-                  <tr>
-                    <th style="width:50px">Rang</th>
-                    <th>Modèle</th>
-                    <th style="width:200px">Score qualité</th>
-                    <th style="width:80px">Latence</th>
-                    <th style="width:90px">Statut</th>
-                    <th style="width:110px">Testé le</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let m of llmModels; let i = index"
-                      [class.llma-champion]="m.is_active"
-                      [style.border-left]="m.is_active?'3px solid #1D9E75':'none'"
-                      [style.opacity]="(m.score||0)===0?'0.4':'1'">
-                    <td class="llma-rank">
-                      {{i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}}
-                    </td>
-                    <td>
-                      <div class="llma-model-id">
-                        {{m.model_id}}
-                        <span class="llma-badge-active" *ngIf="m.is_active">ACTIF</span>
-                        <span class="llma-badge-new"    *ngIf="m.is_new && !m.is_active">NEW</span>
-                      </div>
-                      <div class="llma-model-sub">{{(m.score||0)===0 ? 'Non supporté (HTTP 400/429)' : 'LLM Chat · Groq API · free'}}</div>
-                    </td>
-                    <td>
-                      <div class="llma-score-wrap">
-                        <div class="llma-score-bar">
-                          <div class="llma-score-fill"
-                              [style.width]="(m.score||0)+'%'"
-                              [style.background]="getLlmScoreColor(m.score||0)"></div>
-                        </div>
-                        <span class="llma-score-num" [style.color]="getLlmScoreColor(m.score||0)">{{m.score||0}}</span>
-                      </div>
-                    </td>
-                    <td class="llma-lat"
-                        [style.color]="(m.response_ms||0)<2000?'#0F6E56':(m.response_ms||0)<4000?'#854F0B':'#A32D2D'">
-                      {{m.response_ms ? ((m.response_ms/1000).toFixed(1)+'s') : '—'}}
-                      <div style="font-size:9px;color:var(--color-text-tertiary);margin-top:1px" *ngIf="m.throughput_tps">
-                        {{m.throughput_tps.toFixed(0)}} tok/s
-                      </div>
-                    </td>
-                    <td>
-                      <span class="llma-status" [style.color]="m.is_active?'#0F6E56':m.is_new?'#185FA5':'var(--color-text-tertiary)'">
-                        {{m.is_active?'Actif':m.is_new?'Nouveau':'Inactif'}}
-                      </span>
-                    </td>
-                    <td class="llma-date">{{m.tested_at | date:'dd/MM HH:mm'}}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="llm-empty" *ngIf="llmModels.length===0&&!llmLoading">
-              <i class="pi pi-info-circle"></i> Aucun benchmark — lancez un cycle de découverte
-            </div>
-            <div class="llm-empty" *ngIf="llmLoading">
-              <i class="pi pi-spin pi-spinner"></i> Chargement...
-            </div>
-          </div>
-
-          <!-- Comparaison top 2 style OpenRouter -->
-          <div class="llm-section-card">
-            <div class="llm-section-header">
-              <span class="llm-section-title">Comparaison détaillée — top 2</span>
-              <span class="llm-section-sub">Caractéristiques et performance · style OpenRouter</span>
-            </div>
-            <div class="llma-compare-grid">
-              <ng-container *ngFor="let m of llmModels | slice:0:2; let ci = index">
-                <div class="llma-ccard" [class.llma-ccard-champion]="m.is_active">
-                  <div class="llma-ccard-head">
-                    <div>
-                      <div class="llma-ccard-name">{{m.model_id}}</div>
-                      <div class="llma-ccard-provider">Groq · LLM Chat · free</div>
-                    </div>
-                    <span [class]="m.is_active ? 'llma-tag-champion' : 'llma-tag-runner'">
-                      {{m.is_active ? 'Champion actif' : ci===0 ? 'Meilleur score' : 'Score égal'}}
-                    </span>
-                  </div>
-
-                  <!-- Score grand format -->
-                  <div class="llma-compare-score-row">
-                    <div class="llma-ccard-score" [style.color]="getLlmScoreColor(m.score||0)">
-                      {{m.score||0}}<span class="llma-ccard-score-sub">/100</span>
-                    </div>
-                    <div class="llma-compare-bar-wrap">
-                      <div class="llma-compare-bar">
-                        <div class="llma-compare-fill" [style.width]="(m.score||0)+'%'" [style.background]="getLlmScoreColor(m.score||0)"></div>
-                      </div>
-                      <div class="llma-compare-bar-lbl">Score qualité YAML</div>
-                    </div>
-                  </div>
-
-                  <!-- Rows détaillées -->
-                  <div class="llma-ccard-rows">
-                    <div class="llma-ccard-row">
-                      <span>Latence (p50)</span>
-                      <span class="llma-mono" [style.color]="(m.response_ms||0)<2000?'#0F6E56':(m.response_ms||0)<4000?'#854F0B':'#A32D2D'">
-                        {{m.response_ms ? ((m.response_ms/1000).toFixed(1)+'s') : '—'}}
-                      </span>
-                    </div>
-                    <div class="llma-ccard-row"><span>Fournisseur</span><span class="llma-mono">Groq API</span></div>
-                    <div class="llma-ccard-row"><span>Tarification input</span><span class="llma-mono" style="color:#0F6E56">$0 / M tokens</span></div>
-                    <div class="llma-ccard-row"><span>Tarification output</span><span class="llma-mono" style="color:#0F6E56">$0 / M tokens</span></div>
-                    <div class="llma-ccard-row"><span>Tool use</span><span class="llma-check">✓</span></div>
-                    <div class="llma-ccard-row"><span>Streaming</span><span class="llma-check">✓</span></div>
-                    <div class="llma-ccard-row"><span>No prompt training</span><span class="llma-check">✓</span></div>
-                    <div class="llma-ccard-row"><span>Statut</span>
-                      <span class="llma-badge-active" *ngIf="m.is_active">ACTIF</span>
-                      <span class="llma-badge-new" *ngIf="!m.is_active">Candidat</span>
-                    </div>
-                  </div>
-                </div>
-              </ng-container>
-            </div>
-          </div>
-
-          <!-- Charts performance -->
-          <div class="llm-section-card">
-            <div class="llm-section-header">
-              <span class="llm-section-title">Performance visuelle</span>
-              <span class="llm-section-sub">Score qualité · latence · tous les modèles</span>
-            </div>
-            <div class="llma-charts-grid">
-              <!-- Score chart natif (barres CSS) -->
-              <div class="llma-chart-col">
-                <div class="llma-chart-title">Score qualité YAML</div>
-                <div class="llma-bar-chart">
-                  <div class="llma-bar-row" *ngFor="let m of llmModels" [style.opacity]="(m.score||0)===0?'0.4':'1'">
-                    <div class="llma-bar-label">{{m.model_id | slice:0:16}}</div>
-                    <div class="llma-bar-track">
-                      <div class="llma-bar-fill"
-                          [style.width]="(m.score||0)+'%'"
-                          [style.background]="getLlmScoreColor(m.score||0)">
-                      </div>
-                    </div>
-                    <div class="llma-bar-val" [style.color]="getLlmScoreColor(m.score||0)">{{m.score||0}}</div>
-                  </div>
-                </div>
-              </div>
-              <!-- Latence chart natif (barres CSS) -->
-              <div class="llma-chart-col">
-                <div class="llma-chart-title">Latence p50 (secondes)</div>
-                <div class="llma-bar-chart">
-                  <div class="llma-bar-row" *ngFor="let m of llmModels" [style.opacity]="(m.score||0)===0?'0.4':'1'">
-                    <div class="llma-bar-label">{{m.model_id | slice:0:16}}</div>
-                    <div class="llma-bar-track">
-                      <div class="llma-bar-fill"
-                          [style.width]="getLatPct(m.response_ms||0)+'%'"
-                          [style.background]="(m.response_ms||0)<2000?'#1D9E75':(m.response_ms||0)<4000?'#BA7517':'#A32D2D'">
-                      </div>
-                    </div>
-                    <div class="llma-bar-val"
-                        [style.color]="(m.response_ms||0)<2000?'#0F6E56':(m.response_ms||0)<4000?'#854F0B':'#A32D2D'">
-                      {{m.response_ms ? ((m.response_ms/1000).toFixed(1)+'s') : '—'}}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bas : How it works + Journal -->
-          <div class="llma-bottom-grid">
-            <div class="llm-section-card">
-              <div class="llm-section-header">
-                <span class="llm-section-title">Comment ça marche</span>
-              </div>
-              <div class="llma-steps">
-                <div class="llma-step">
-                  <div class="llma-step-n" style="background:#E6F1FB;color:#0C447C">1</div>
-                  <div><div class="llma-step-t">Détection automatique</div><div class="llma-step-d">Interroge l'API Groq toutes les 6h pour lister les nouveaux modèles chat disponibles</div></div>
-                </div>
-                <div class="llma-step">
-                  <div class="llma-step-n" style="background:#FAEEDA;color:#633806">2</div>
-                  <div><div class="llma-step-t">Benchmark qualité YAML</div><div class="llma-step-d">Teste chaque nouveau modèle sur une spec BIAT standard — score 0-100 sur 10 critères</div></div>
-                </div>
-                <div class="llma-step">
-                  <div class="llma-step-n" style="background:#E1F5EE;color:#085041">3</div>
-                  <div><div class="llma-step-t">Basculement automatique</div><div class="llma-step-d">Score nouveau > actuel → llm_config.json mis à jour → MoE bascule immédiatement</div></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="llm-section-card" *ngIf="llmLogs.length > 0">
-              <div class="llm-section-header">
-                <span class="llm-section-title">Journal de découverte</span>
-              </div>
-              <div class="llm-log-wrap">
-                <div class="llm-log-item" *ngFor="let l of llmLogs | slice:0:8"
-                    [style.background]="l.event==='UPGRADE'?'rgba(29,158,117,.04)':'transparent'">
-                  <span class="llm-log-time">{{l.created_at | date:'dd/MM HH:mm'}}</span>
-                  <span class="llm-log-event"
-                        [class.ev-upgrade]="l.event==='UPGRADE'"
-                        [class.ev-detect]="l.event==='DETECTED'"
-                        [class.ev-test]="l.event==='TEST'">
-                    {{l.event==='UPGRADE'?'🚀 UPGRADE':l.event==='DETECTED'?'✨ NEW':l.event}}
-                  </span>
-                  <span class="llm-log-msg">{{l.details}}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
     </div>
-  </div>
 
-  <!-- TEMPLATE RAPPORT AUDIT -->
-  <ng-template #auditReportTpl let-audit="audit">
-    <div class="report-wrap">
-      <div class="report-header">
-        <div class="report-header-left">
-          <div class="report-origin-badge"
-              [style.background]="audit._origin==='live'?'rgba(192,66,255,0.15)':'rgba(48,54,61,0.5)'"
-              [style.border-color]="audit._origin==='live'?'rgba(192,66,255,0.4)':'#30363d'"
-              [style.color]="audit._origin==='live'?'#c042ff':'#8b949e'">
-            <i class="pi" [class.pi-wifi]="audit._origin==='live'" [class.pi-database]="audit._origin!=='live'" style="font-size:0.55rem"></i>
-            {{audit._origin==='live' ? 'Live' : 'Historique DB'}}
-          </div>
-          <div class="report-icon" [style.background]="getStatusColor(audit.status)+'18'" [style.border-color]="getStatusColor(audit.status)+'50'">
-            <i class="pi pi-file-edit" [style.color]="getStatusColor(audit.status)" style="font-size:1rem"></i>
-          </div>
-          <div class="report-title-block">
-            <h2 class="report-title">{{audit.spec_id}}</h2>
-            <div class="report-meta">
-              <span class="rm-badge rm-id">#{{audit.id}}</span>
-              <span class="rm-badge rm-source">{{audit.source}}</span>
-              <span class="rm-badge rm-date">{{formatDate(audit.timestamp)}}</span>
-            </div>
-          </div>
-        </div>
-        <div class="report-header-right">
-    <div class="report-score-ring">
-      <div class="rsr-val" [style.color]="getScoreColor(audit.score??0)">{{audit.score ?? '—'}}</div>
-      <div class="rsr-label">Score</div>
+    <!-- ═══ API IMPORT (intégré dans admin) ═══ -->
+    <div class="admin-tab-content admin-import-tab" *ngIf="selectedTab==='import'">
+      <div class="import-wrapper">
+        <app-api-import></app-api-import>
+      </div>
     </div>
-    <div class="report-score-ring" *ngIf="audit.ai?.rl_final_score">
-      <div class="rsr-val" [style.color]="getScoreColor(audit.ai.rl_final_score)">{{audit.ai.rl_final_score}}</div>
-      <div class="rsr-label">Score RL</div>
-    </div>
-    <div class="report-status-badge"
-        [style.color]="getStatusColor(audit.status)"
-        [style.background]="getStatusColor(audit.status)+'18'"
-        [style.border-color]="getStatusColor(audit.status)+'40'">
-      {{audit.status}}
-    </div>
-    <button class="report-pdf-btn" (click)="downloadPdfReport(audit)"
-            [disabled]="actionLoading===audit.id">
-      <i class="pi pi-file-pdf"></i>
-      PDF
-    </button>
-  </div>  
-      </div>
 
-      <!-- Qdrant -->
-      <div class="report-section" *ngIf="audit.qdrant">
-        <div class="report-section-title">
-          <i class="pi pi-database" style="color:#00f2ff"></i> Qdrant — Déduplication
-          <span class="rst-badge" [style.color]="getQdrantColor(audit.qdrant.level)" [style.background]="getQdrantColor(audit.qdrant.level)+'18'">{{audit.qdrant.level}}</span>
-        </div>
-        <div class="report-qdrant-grid">
-          <div class="rq-card" [style.border-color]="getQdrantColor(audit.qdrant.level)+'50'">
-            <div class="rq-level" [style.color]="getQdrantColor(audit.qdrant.level)">{{audit.qdrant.level}}</div>
-            <div class="rq-desc">{{getQdrantDescription(audit.qdrant.level)}}</div>
-          </div>
-          <div class="rq-card" *ngIf="audit.qdrant.similar_api">
-            <div class="rq-label">API similaire</div>
-            <code class="rq-val">{{audit.qdrant.similar_api}}</code>
-            <div class="rq-similarity" *ngIf="audit.qdrant.similarity">
-              <div class="rqs-bar"><div class="rqs-fill" [style.width]="(audit.qdrant.similarity*100)+'%'" [style.background]="getQdrantColor(audit.qdrant.level)"></div></div>
-              <span [style.color]="getQdrantColor(audit.qdrant.level)">{{(audit.qdrant.similarity*100).toFixed(1)}}%</span>
-            </div>
-          </div>
-          <div class="rq-card" *ngIf="audit.qdrant.rag_count>0">
-            <div class="rq-label">RAG injecté</div>
-            <div class="rq-rag-val">×{{audit.qdrant.rag_count}}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- MoE scores -->
-      <div class="report-section" *ngIf="audit.ia_eval">
-        <div class="report-section-title">
-          <i class="pi pi-users" style="color:#c042ff"></i> MoE — Experts IA
-          <span class="rst-model-tag">{{audit.ai?.model || 'gpt-oss-120b'}}</span>
-        </div>
-        <div class="report-moe-grid">
-          <div class="rme-card">
-            <div class="rme-header">
-              <div class="rme-icon" style="background:rgba(192,66,255,0.15);border-color:rgba(192,66,255,0.3)"><i class="pi pi-palette" style="color:#c042ff;font-size:0.85rem"></i></div>
-              <div class="rme-meta"><span class="rme-name">Design</span><span class="rme-desc">REST · Nommage · Structure</span></div>
-              <div class="rme-score" style="color:#c042ff">{{audit.ia_eval.design_score ?? '—'}}<span class="rme-over">/100</span></div>
-            </div>
-            <div class="rme-bar"><div class="rme-fill" style="background:#c042ff" [style.width]="(audit.ia_eval.design_score??0)+'%'"></div></div>
-          </div>
-          <div class="rme-card">
-            <div class="rme-header">
-              <div class="rme-icon" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3)"><i class="pi pi-shield" style="color:#f59e0b;font-size:0.85rem"></i></div>
-              <div class="rme-meta"><span class="rme-name">Security</span><span class="rme-desc">OWASP · Auth</span></div>
-              <div class="rme-score" style="color:#f59e0b">{{audit.ia_eval.security_score ?? '—'}}<span class="rme-over">/100</span></div>
-            </div>
-            <div class="rme-bar"><div class="rme-fill" style="background:#f59e0b" [style.width]="(audit.ia_eval.security_score??0)+'%'"></div></div>
-          </div>
-          <div class="rme-card">
-            <div class="rme-header">
-              <div class="rme-icon" style="background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.3)"><i class="pi pi-building" style="color:#22c55e;font-size:0.85rem"></i></div>
-              <div class="rme-meta"><span class="rme-name">BIAT Policy</span><span class="rme-desc">WSO2 · Standards</span></div>
-              <div class="rme-score" style="color:#22c55e">{{audit.ia_eval.chairman_score ?? '—'}}<span class="rme-over">/100</span></div>
-            </div>
-            <div class="rme-bar"><div class="rme-fill" style="background:#22c55e" [style.width]="(audit.ia_eval.chairman_score??0)+'%'"></div></div>
-          </div>
-        </div>
-
-        <!-- Latences -->
-        <div class="report-latencies" *ngIf="audit.ia_eval.latency_ms">
-          <div class="rla-title">Temps de traitement par expert</div>
-          <div class="rla-row" *ngFor="let stage of ['design','security','biat']">
-            <span class="rla-name">{{stage}}</span>
-            <div class="rla-bar"><div class="rla-fill" [style.width]="((audit.ia_eval.latency_ms[stage]||0)/15000*100)+'%'" [style.background]="stage==='design'?'#c042ff':stage==='security'?'#f59e0b':'#22c55e'"></div></div>
-            <span class="rla-val">{{audit.ia_eval.latency_ms[stage]?(audit.ia_eval.latency_ms[stage]/1000).toFixed(1)+'s':'—'}}</span>
-          </div>
-        </div>
-
-        <!-- Score RL final -->
-        <div class="report-rl-score" *ngIf="audit.ai?.rl_final_score">
-          <div class="rrs-left">
-            <i class="pi pi-sliders-h" style="color:#c042ff;font-size:0.85rem"></i>
-            <span class="rrs-label">Score RL Final — {{audit.ai?.model || 'gpt-oss-120b'}}</span>
-          </div>
-          <div class="rrs-val" [style.color]="getScoreColor(audit.ai.rl_final_score)">
-            {{audit.ai.rl_final_score}}<span style="font-size:0.7rem;color:#8b949e">/100</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- YAML corrigé par l'IA — vue améliorée -->
-      <div class="report-section" *ngIf="audit.corrected_yaml || audit.ai?.corrected_yaml">
-        <div class="report-section-title">
-          <i class="pi pi-file-edit" style="color:#22c55e"></i> YAML corrigé par l'IA
-          <span class="rst-badge" style="color:#22c55e;background:rgba(34,197,94,0.12)">Prêt WSO2</span>
-          <span class="rst-badge" style="color:#00f2ff;background:rgba(0,242,255,0.1);margin-left:4px">
-            {{audit.ai?.model || 'gpt-oss-120b'}}
-          </span>
-        </div>
-
-        <!-- Résumé des corrections appliquées -->
-        <div class="corrections-summary" *ngIf="audit.ai_analysis?.improvement">
-          <div class="cs-item">
-            <i class="pi pi-arrow-up" style="color:#22c55e;font-size:0.7rem"></i>
-            <span>Design</span>
-            <span class="cs-delta" style="color:#22c55e">
-              {{audit.ai_analysis.scores_before?.design}} → {{audit.ai_analysis.scores_after?.design}}/100
-            </span>
-          </div>
-          <div class="cs-item">
-            <i class="pi pi-arrow-up" style="color:#f59e0b;font-size:0.7rem"></i>
-            <span>Security</span>
-            <span class="cs-delta" style="color:#f59e0b">
-              {{audit.ai_analysis.scores_before?.security}} → {{audit.ai_analysis.scores_after?.security}}/100
-            </span>
-          </div>
-          <div class="cs-item cs-auto" *ngIf="audit.ai_analysis?.auto_corrections?.length">
-            <i class="pi pi-check-circle" style="color:#22c55e;font-size:0.7rem"></i>
-            <span>{{audit.ai_analysis.auto_corrections?.length || 0}} corrections auto appliquées</span>
-          </div>
-        </div>
-
-        <!-- Viewer YAML avec tabs Original / Corrigé -->
-        <div class="yaml-tabs">
-          <button class="yaml-tab" [class.yaml-tab-active]="yamlView!=='diff'"
-                  (click)="yamlView='corrected'">
-            <i class="pi pi-check-circle" style="font-size:0.65rem;color:#22c55e"></i> Corrigé
-          </button>
-          <button class="yaml-tab" [class.yaml-tab-active]="yamlView==='diff'"
-                  (click)="yamlView='diff'">
-            <i class="pi pi-sliders-h" style="font-size:0.65rem;color:#f59e0b"></i> Changements
-          </button>
-        </div>
-
-        <div class="yaml-viewer-wrap">
-          <div class="yaml-viewer-header">
-            <span class="yaml-viewer-name">
-              <i class="pi pi-file" style="font-size:0.7rem"></i>
-              {{audit.spec_id}}_corrected.yaml
-            </span>
-            <div style="display:flex;gap:6px">
-              <button class="yaml-copy-btn" (click)="copyYaml(audit)">
-                <i class="pi pi-copy"></i> Copier
-              </button>
-              <button class="yaml-download-btn" (click)="downloadYaml(audit)">
-                <i class="pi pi-download"></i> Télécharger
-              </button>
-            </div>
-          </div>
-
-          <!-- Vue corrigée normale -->
-          <pre class="yaml-viewer-content custom-scroll"
-              *ngIf="yamlView !== 'diff'">{{audit.corrected_yaml || audit.ai?.corrected_yaml}}</pre>
-
-          <!-- Vue diff — lignes ajoutées en vert -->
-          <div class="yaml-diff-viewer custom-scroll" *ngIf="yamlView === 'diff'">
-            <div *ngFor="let line of getDiffLines(audit)"
-                class="diff-line"
-                [class.diff-added]="line.type==='added'"
-                [class.diff-removed]="line.type==='removed'"
-                [class.diff-normal]="line.type==='normal'">
-              <span class="diff-marker">{{line.type==='added' ? '+' : line.type==='removed' ? '-' : ' '}}</span>
-              <code class="diff-code">{{line.content}}</code>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Actions HITL -->
-      <!-- Testing Pipeline — Live Monitor -->
-      <div class="report-section testing-monitor-section" *ngIf="audit.ai?.testing_pipeline || audit.testing_pipeline || audit.ai_analysis?.testing_pipeline">
+    <!-- ═══ LLM ARENA ═══ -->
+    <div class="admin-tab-content" *ngIf="selectedTab==='llm'">
+      <div class="llm-arena-page">
 
         <!-- Header -->
-        <div class="tm-header">
-          <div class="tm-title">
-            <i class="pi pi-check-square" style="font-size:15px"></i>
-            Testing pipeline — Dredd + Schemathesis
-            <span class="tm-live-dot" [class.tm-dot-pass]="getTestStatus(audit)==='TESTS_PASSED'" [class.tm-dot-fail]="getTestStatus(audit)==='FAILED'"></span>
-          </div>
-          <span class="tm-badge"
-                [class.tm-badge-pass]="getTestStatus(audit)==='TESTS_PASSED'"
-                [class.tm-badge-fail]="getTestStatus(audit)==='FAILED'"
-                [class.tm-badge-idle]="getTestStatus(audit)==='NOT_TESTED'">
-            {{getTestStatus(audit)}}
-          </span>
-        </div>
-
-        <!-- Métriques -->
-        <div class="tm-metrics">
-          <div class="tm-metric">
-            <div class="tm-metric-val">{{getTestSummary(audit)?.total_tests ?? 0}}</div>
-            <div class="tm-metric-lbl">Tests total</div>
-          </div>
-          <div class="tm-metric">
-            <div class="tm-metric-val" style="color:#22c55e">{{getTestSummary(audit)?.total_passed ?? 0}}</div>
-            <div class="tm-metric-lbl">Passed</div>
-          </div>
-          <div class="tm-metric">
-            <div class="tm-metric-val" style="color:#f43f5e">{{getTestSummary(audit)?.total_failed ?? 0}}</div>
-            <div class="tm-metric-lbl">Failed</div>
-          </div>
-          <div class="tm-metric">
-            <div class="tm-metric-val" [style.color]="(getTestSummary(audit)?.pass_rate ?? 0) >= 75 ? '#22c55e' : '#f43f5e'">
-              {{getTestSummary(audit)?.pass_rate ?? 0}}%
-            </div>
-            <div class="tm-metric-lbl">Pass rate</div>
-          </div>
-        </div>
-
-        <!-- Progress bar -->
-        <div class="tm-progress-wrap">
-          <div class="tm-progress-label">
-            <span>{{getTestStatus(audit) === 'TESTS_PASSED' ? 'Tests terminés — en attente HITL' : getTestStatus(audit) === 'FAILED' ? 'Tests échoués — corrections requises' : 'En attente...'}}</span>
-            <span>{{getTestSummary(audit)?.pass_rate ?? 0}}%</span>
-          </div>
-          <div class="tm-progress-bar">
-            <div class="tm-progress-fill"
-                [style.width]="(getTestSummary(audit)?.pass_rate ?? 0) + '%'"
-                [style.background]="(getTestSummary(audit)?.pass_rate ?? 0) >= 75 ? '#22c55e' : '#f43f5e'">
-            </div>
-          </div>
-        </div>
-
-        <!-- Steps pipeline -->
-        <div class="tm-pipeline">
-
-          <!-- Step Prism -->
-          <div class="tm-step">
-            <div class="tm-step-icon" [class.tm-icon-pass]="true">
-              <i class="pi pi-server" style="font-size:13px"></i>
-            </div>
-            <div class="tm-step-body">
-              <div class="tm-step-name">Prism mock server</div>
-              <div class="tm-step-sub">Serveur mock OpenAPI · endpoints exposés</div>
-              <div class="tm-step-detail">{{getTestData(audit,'dredd')?.total ?? 0}} endpoint(s) testés</div>
-            </div>
-            <div class="tm-step-time">auto</div>
-          </div>
-
-          <!-- Step Dredd -->
-          <div class="tm-step">
-            <div class="tm-step-icon"
-                [class.tm-icon-pass]="getTestData(audit,'dredd')?.passed"
-                [class.tm-icon-fail]="!getTestData(audit,'dredd')?.passed && getTestData(audit,'dredd') !== null">
-              <i class="pi pi-check-circle" *ngIf="getTestData(audit,'dredd')?.passed" style="font-size:13px"></i>
-              <i class="pi pi-times-circle" *ngIf="!getTestData(audit,'dredd')?.passed && getTestData(audit,'dredd') !== null" style="font-size:13px"></i>
-              <i class="pi pi-circle" *ngIf="getTestData(audit,'dredd') === null" style="font-size:13px"></i>
-            </div>
-            <div class="tm-step-body">
-              <div class="tm-step-name">Dredd — contract testing</div>
-              <div class="tm-step-sub">Validation contrat OpenAPI · status codes · headers</div>
-              <div class="tm-step-detail">
-                {{getTestData(audit,'dredd')?.passed_count ?? 0}}/{{getTestData(audit,'dredd')?.total ?? 0}} endpoints
-                · {{getTestData(audit,'dredd')?.duration_ms ?? 0}}ms
-              </div>
-            </div>
-            <div class="tm-step-time"
-                [style.color]="getTestData(audit,'dredd')?.passed ? '#22c55e' : '#f43f5e'">
-              {{getTestData(audit,'dredd')?.passed ? 'PASSED' : 'FAILED'}}
-            </div>
-          </div>
-
-          <!-- Step Schemathesis -->
-          <div class="tm-step">
-            <div class="tm-step-icon"
-                [class.tm-icon-pass]="getTestData(audit,'schemathesis')?.passed"
-                [class.tm-icon-fail]="!getTestData(audit,'schemathesis')?.passed && getTestData(audit,'schemathesis') !== null">
-              <i class="pi pi-check-circle" *ngIf="getTestData(audit,'schemathesis')?.passed" style="font-size:13px"></i>
-              <i class="pi pi-times-circle" *ngIf="!getTestData(audit,'schemathesis')?.passed && getTestData(audit,'schemathesis') !== null" style="font-size:13px"></i>
-              <i class="pi pi-circle" *ngIf="getTestData(audit,'schemathesis') === null" style="font-size:13px"></i>
-            </div>
-            <div class="tm-step-body">
-              <div class="tm-step-name">Schemathesis — fuzzing</div>
-              <div class="tm-step-sub">Property-based testing · types · contraintes · edge cases</div>
-              <div class="tm-step-detail">
-                {{getTestData(audit,'schemathesis')?.passed_count ?? 0}}/{{getTestData(audit,'schemathesis')?.total ?? 0}} schemas
-                · {{getTestData(audit,'schemathesis')?.duration_ms ?? 0}}ms
-              </div>
-            </div>
-            <div class="tm-step-time"
-                [style.color]="getTestData(audit,'schemathesis')?.passed ? '#22c55e' : '#f43f5e'">
-              {{getTestData(audit,'schemathesis')?.passed ? 'PASSED' : 'FAILED'}}
-            </div>
-          </div>
-
-          <!-- Step Result -->
-          <div class="tm-step tm-step-last">
-            <div class="tm-step-icon"
-                [class.tm-icon-pass]="getTestStatus(audit)==='TESTS_PASSED'"
-                [class.tm-icon-fail]="getTestStatus(audit)==='FAILED'"
-                [class.tm-icon-wait]="getTestStatus(audit)==='NOT_TESTED'">
-              <i class="pi pi-flag" style="font-size:13px"></i>
-            </div>
-            <div class="tm-step-body">
-              <div class="tm-step-name">Décision finale</div>
-              <div class="tm-step-sub" [style.color]="getTestStatus(audit)==='TESTS_PASSED' ? '#22c55e' : '#f43f5e'">
-                {{getTestStatus(audit)==='TESTS_PASSED' ? 'Prêt pour validation HITL admin BIAT' : 'Corrections requises avant HITL'}}
-              </div>
-            </div>
-            <div class="tm-step-time"></div>
-          </div>
-
-        </div>
-
-        <!-- Failures -->
-        <div class="tm-failures" *ngIf="(getTestSummary(audit)?.all_failures?.length ?? 0) > 0">
-          <div class="tm-failures-title">
-            <i class="pi pi-exclamation-triangle" style="font-size:12px"></i>
-            Violations détectées :
-          </div>
-          <div class="tm-failure-item" *ngFor="let f of getTestSummary(audit)?.all_failures?.slice(0,3)">
-            <span class="tm-fail-method" *ngIf="f.method">{{f.method}}</span>
-            <span class="tm-fail-endpoint" *ngIf="f.endpoint">{{f.endpoint}}</span>
-            <span class="tm-fail-msg">{{f.message}}</span>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="tm-actions">
-          <button class="tm-btn-rerun" (click)="rerunTests(audit)"
-                  [disabled]="actionLoading===audit.id">
-            <i class="pi pi-refresh" [class.pi-spin]="actionLoading===audit.id"></i>
-            Relancer les tests
-          </button>
-          <button class="tm-btn-recorrect"
-                  *ngIf="getTestStatus(audit)==='TESTS_FAILED' || getTestStatus(audit)==='FAILED'"
-                  (click)="recorrectAndRetest(audit)"
-                  [disabled]="actionLoading===audit.id">
-            <i class="pi pi-sparkles" [class.pi-spin]="actionLoading===audit.id"></i>
-            🔄 Recorriger + Retester
-          </button>
-        </div>
-
-        <!-- Cycle counter amélioré -->
-        <div class="tm-recorrect-banner"
-            *ngIf="(audit.ai_analysis?.recorrect_cycles || audit.ai?.recorrect_cycles) > 0">
-          <div class="tm-recorrect-left">
-            <span class="tm-recorrect-icon">🔄</span>
+        <div class="llm-page-header">
+          <div class="llm-page-title">
+            <span style="font-size:22px">🏆</span>
             <div>
-              <div class="tm-recorrect-title">
-                Cycle de recorrection
-                <span class="tm-recorrect-num">
-                  #{{audit.ai_analysis?.recorrect_cycles || audit.ai?.recorrect_cycles}}
-                </span>
+              <div class="llm-ph-name">LLM Arena</div>
+              <div class="llm-ph-sub">Benchmark automatique Groq · détection et basculement intelligent</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="llm-champion-tag">Champion : {{llmActiveModel | slice:0:20}}</span>
+            <button class="llm-page-btn" (click)="triggerLlmDiscovery()">
+              <i class="pi pi-search" style="font-size:11px"></i> Lancer discovery
+            </button>
+            <button class="llm-page-btn" (click)="loadLlmModels()">
+              <i class="pi pi-refresh" style="font-size:11px" [class.pi-spin]="llmLoading"></i> Actualiser
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="llm-kpi-grid">
+          <div class="llm-kpi-card" style="border:0.5px solid rgba(29,158,117,.3);background:rgba(29,158,117,.04)">
+            <div class="llm-kpi-lbl">🏆 Champion actif</div>
+            <div class="llm-kpi-val green" style="font-size:12px">{{llmActiveModel | slice:0:18}}</div>
+            <div class="llm-kpi-sub" style="color:#0F6E56">auto-sélectionné · score 85/100</div>
+          </div>
+          <div class="llm-kpi-card">
+            <div class="llm-kpi-lbl">Modèles benchmarkés</div>
+            <div class="llm-kpi-val">{{llmModels.length}}</div>
+            <div class="llm-kpi-sub">sur Groq API</div>
+          </div>
+          <div class="llm-kpi-card">
+            <div class="llm-kpi-lbl">Meilleur score</div>
+            <div class="llm-kpi-val green">{{(llmModels | slice:0:1)[0]?.score ?? 0}}/100</div>
+            <div class="llm-kpi-sub">qualité YAML</div>
+          </div>
+          <div class="llm-kpi-card">
+            <div class="llm-kpi-lbl">Auto-check</div>
+            <div class="llm-kpi-val">6h</div>
+            <div class="llm-kpi-sub">scheduler actif</div>
+          </div>
+          <div class="llm-kpi-card">
+            <div class="llm-kpi-lbl">Nouveaux détectés</div>
+            <div class="llm-kpi-val amber">{{getLlmNewCount()}}</div>
+            <div class="llm-kpi-sub">ce cycle</div>
+          </div>
+        </div>
+
+        <!-- Classement table -->
+        <div class="llm-section-card">
+          <div class="llm-section-header">
+            <span class="llm-section-title">Classement des modèles</span>
+            <span class="llm-section-sub">Trié par score qualité YAML décroissant · benchmark BIAT standard</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="llma-table">
+              <thead>
+                <tr>
+                  <th style="width:50px">Rang</th>
+                  <th>Modèle</th>
+                  <th style="width:200px">Score qualité</th>
+                  <th style="width:80px">Latence</th>
+                  <th style="width:90px">Statut</th>
+                  <th style="width:110px">Testé le</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of llmModels; let i = index"
+                    [class.llma-champion]="m.is_active"
+                    [style.border-left]="m.is_active?'3px solid #1D9E75':'none'"
+                    [style.opacity]="(m.score||0)===0?'0.4':'1'">
+                  <td class="llma-rank">
+                    {{i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}}
+                  </td>
+                  <td>
+                    <div class="llma-model-id">
+                      {{m.model_id}}
+                      <span class="llma-badge-active" *ngIf="m.is_active">ACTIF</span>
+                      <span class="llma-badge-new"    *ngIf="m.is_new && !m.is_active">NEW</span>
+                    </div>
+                    <div class="llma-model-sub">{{(m.score||0)===0 ? 'Non supporté (HTTP 400/429)' : 'LLM Chat · Groq API · free'}}</div>
+                  </td>
+                  <td>
+                    <div class="llma-score-wrap">
+                      <div class="llma-score-bar">
+                        <div class="llma-score-fill"
+                             [style.width]="(m.score||0)+'%'"
+                             [style.background]="getLlmScoreColor(m.score||0)"></div>
+                      </div>
+                      <span class="llma-score-num" [style.color]="getLlmScoreColor(m.score||0)">{{m.score||0}}</span>
+                    </div>
+                  </td>
+                  <td class="llma-lat"
+                      [style.color]="(m.response_ms||0)<2000?'#0F6E56':(m.response_ms||0)<4000?'#854F0B':'#A32D2D'">
+                    {{m.response_ms ? ((m.response_ms/1000).toFixed(1)+'s') : '—'}}
+                    <div style="font-size:9px;color:var(--color-text-tertiary);margin-top:1px" *ngIf="m.throughput_tps">
+                      {{m.throughput_tps.toFixed(0)}} tok/s
+                    </div>
+                  </td>
+                  <td>
+                    <span class="llma-status" [style.color]="m.is_active?'#0F6E56':m.is_new?'#185FA5':'var(--color-text-tertiary)'">
+                      {{m.is_active?'Actif':m.is_new?'Nouveau':'Inactif'}}
+                    </span>
+                  </td>
+                  <td class="llma-date">{{m.tested_at | date:'dd/MM HH:mm'}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="llm-empty" *ngIf="llmModels.length===0&&!llmLoading">
+            <i class="pi pi-info-circle"></i> Aucun benchmark — lancez un cycle de découverte
+          </div>
+          <div class="llm-empty" *ngIf="llmLoading">
+            <i class="pi pi-spin pi-spinner"></i> Chargement...
+          </div>
+        </div>
+
+        <!-- Comparaison top 2 style OpenRouter -->
+        <div class="llm-section-card">
+          <div class="llm-section-header">
+            <span class="llm-section-title">Comparaison détaillée — top 2</span>
+            <span class="llm-section-sub">Caractéristiques et performance · style OpenRouter</span>
+          </div>
+          <div class="llma-compare-grid">
+            <ng-container *ngFor="let m of llmModels | slice:0:2; let ci = index">
+              <div class="llma-ccard" [class.llma-ccard-champion]="m.is_active">
+                <div class="llma-ccard-head">
+                  <div>
+                    <div class="llma-ccard-name">{{m.model_id}}</div>
+                    <div class="llma-ccard-provider">Groq · LLM Chat · free</div>
+                  </div>
+                  <span [class]="m.is_active ? 'llma-tag-champion' : 'llma-tag-runner'">
+                    {{m.is_active ? 'Champion actif' : ci===0 ? 'Meilleur score' : 'Score égal'}}
+                  </span>
+                </div>
+
+                <!-- Score grand format -->
+                <div class="llma-compare-score-row">
+                  <div class="llma-ccard-score" [style.color]="getLlmScoreColor(m.score||0)">
+                    {{m.score||0}}<span class="llma-ccard-score-sub">/100</span>
+                  </div>
+                  <div class="llma-compare-bar-wrap">
+                    <div class="llma-compare-bar">
+                      <div class="llma-compare-fill" [style.width]="(m.score||0)+'%'" [style.background]="getLlmScoreColor(m.score||0)"></div>
+                    </div>
+                    <div class="llma-compare-bar-lbl">Score qualité YAML</div>
+                  </div>
+                </div>
+
+                <!-- Rows détaillées -->
+                <div class="llma-ccard-rows">
+                  <div class="llma-ccard-row">
+                    <span>Latence (p50)</span>
+                    <span class="llma-mono" [style.color]="(m.response_ms||0)<2000?'#0F6E56':(m.response_ms||0)<4000?'#854F0B':'#A32D2D'">
+                      {{m.response_ms ? ((m.response_ms/1000).toFixed(1)+'s') : '—'}}
+                    </span>
+                  </div>
+                  <div class="llma-ccard-row"><span>Fournisseur</span><span class="llma-mono">Groq API</span></div>
+                  <div class="llma-ccard-row"><span>Tarification input</span><span class="llma-mono" style="color:#0F6E56">$0 / M tokens</span></div>
+                  <div class="llma-ccard-row"><span>Tarification output</span><span class="llma-mono" style="color:#0F6E56">$0 / M tokens</span></div>
+                  <div class="llma-ccard-row"><span>Tool use</span><span class="llma-check">✓</span></div>
+                  <div class="llma-ccard-row"><span>Streaming</span><span class="llma-check">✓</span></div>
+                  <div class="llma-ccard-row"><span>No prompt training</span><span class="llma-check">✓</span></div>
+                  <div class="llma-ccard-row"><span>Statut</span>
+                    <span class="llma-badge-active" *ngIf="m.is_active">ACTIF</span>
+                    <span class="llma-badge-new" *ngIf="!m.is_active">Candidat</span>
+                  </div>
+                </div>
               </div>
-              <div class="tm-recorrect-sub">
-                Violations Schemathesis injectées dans le prompt MoE · YAML amélioré automatiquement
+            </ng-container>
+          </div>
+        </div>
+
+        <!-- Charts performance -->
+        <div class="llm-section-card">
+          <div class="llm-section-header">
+            <span class="llm-section-title">Performance visuelle</span>
+            <span class="llm-section-sub">Score qualité · latence · tous les modèles</span>
+          </div>
+          <div class="llma-charts-grid">
+            <!-- Score chart natif (barres CSS) -->
+            <div class="llma-chart-col">
+              <div class="llma-chart-title">Score qualité YAML</div>
+              <div class="llma-bar-chart">
+                <div class="llma-bar-row" *ngFor="let m of llmModels" [style.opacity]="(m.score||0)===0?'0.4':'1'">
+                  <div class="llma-bar-label">{{m.model_id | slice:0:16}}</div>
+                  <div class="llma-bar-track">
+                    <div class="llma-bar-fill"
+                         [style.width]="(m.score||0)+'%'"
+                         [style.background]="getLlmScoreColor(m.score||0)">
+                    </div>
+                  </div>
+                  <div class="llma-bar-val" [style.color]="getLlmScoreColor(m.score||0)">{{m.score||0}}</div>
+                </div>
+              </div>
+            </div>
+            <!-- Latence chart natif (barres CSS) -->
+            <div class="llma-chart-col">
+              <div class="llma-chart-title">Latence p50 (secondes)</div>
+              <div class="llma-bar-chart">
+                <div class="llma-bar-row" *ngFor="let m of llmModels" [style.opacity]="(m.score||0)===0?'0.4':'1'">
+                  <div class="llma-bar-label">{{m.model_id | slice:0:16}}</div>
+                  <div class="llma-bar-track">
+                    <div class="llma-bar-fill"
+                         [style.width]="getLatPct(m.response_ms||0)+'%'"
+                         [style.background]="(m.response_ms||0)<2000?'#1D9E75':(m.response_ms||0)<4000?'#BA7517':'#A32D2D'">
+                    </div>
+                  </div>
+                  <div class="llma-bar-val"
+                       [style.color]="(m.response_ms||0)<2000?'#0F6E56':(m.response_ms||0)<4000?'#854F0B':'#A32D2D'">
+                    {{m.response_ms ? ((m.response_ms/1000).toFixed(1)+'s') : '—'}}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div class="tm-recorrect-result"
-              [style.color]="getTestStatus(audit)==='TESTS_PASSED'?'#22c55e':'#f59e0b'">
-            {{getTestStatus(audit)==='TESTS_PASSED' ? '✓ TESTS_PASSED' : '⚠ En cours...'}}
+        </div>
+
+        <!-- Fallback Status -->
+        <div class="llm-section-card">
+          <div class="llm-section-header">
+            <span class="llm-section-title">🔄 Système de Fallback Automatique</span>
+            <span class="llm-section-sub">Auto-switch en cas de rate limit / provider down</span>
+          </div>
+          <div style="padding:14px 16px">
+            <!-- Chaîne de fallback -->
+            <div style="margin-bottom:12px">
+              <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px">
+                Chaîne de priorité
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <ng-container *ngFor="let m of getFallbackChain(); let i=index; let last=last">
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                    <div style="font-size:9px;padding:3px 8px;border-radius:20px;font-family:monospace;white-space:nowrap"
+                         [style.background]="i===0?'rgba(29,158,117,.12)':'var(--color-background-secondary)'"
+                         [style.color]="i===0?'#0F6E56':'var(--color-text-secondary)'"
+                         [style.border]="i===0?'0.5px solid #1D9E75':'0.5px solid var(--color-border-tertiary)'">
+                      {{m | slice:0:20}}
+                    </div>
+                    <div style="font-size:8px;color:var(--color-text-tertiary)">
+                      {{i===0?'Actif':'Fallback '+i}}
+                    </div>
+                  </div>
+                  <div *ngIf="!last" style="color:var(--color-text-tertiary);font-size:14px">›</div>
+                </ng-container>
+              </div>
+            </div>
+            <!-- Status modèles -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+              <div *ngFor="let m of getFallbackChain() | slice:0:4"
+                   style="flex:1;min-width:120px;background:var(--color-background-secondary);
+                          border-radius:6px;padding:8px 10px;border:0.5px solid var(--color-border-tertiary)">
+                <div style="font-size:9px;font-family:monospace;color:var(--color-text-primary);
+                             overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px">
+                  {{m | slice:0:18}}
+                </div>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <div style="width:6px;height:6px;border-radius:50%;background:#22c55e"></div>
+                  <span style="font-size:9px;color:#0F6E56;font-weight:500">Disponible</span>
+                </div>
+              </div>
+            </div>
+            <!-- Info fallback -->
+            <div style="background:rgba(192,66,255,.04);border:0.5px solid rgba(192,66,255,.2);
+                         border-radius:8px;padding:10px 12px;font-size:11px;color:var(--color-text-secondary)">
+              <div style="font-weight:500;color:#c042ff;margin-bottom:4px">
+                🛡 Protection automatique activée
+              </div>
+              Rate limit → switch automatique · Provider down → fallback immédiat ·
+              Timeout 30s → modèle suivant · Cooldown 5min avant réessai
+            </div>
+          </div>
+        </div>
+
+        <!-- Bas : How it works + Journal -->
+        <div class="llma-bottom-grid">
+          <div class="llm-section-card">
+            <div class="llm-section-header">
+              <span class="llm-section-title">Comment ça marche</span>
+            </div>
+            <div class="llma-steps">
+              <div class="llma-step">
+                <div class="llma-step-n" style="background:#E6F1FB;color:#0C447C">1</div>
+                <div><div class="llma-step-t">Détection automatique</div><div class="llma-step-d">Interroge l'API Groq toutes les 6h pour lister les nouveaux modèles chat disponibles</div></div>
+              </div>
+              <div class="llma-step">
+                <div class="llma-step-n" style="background:#FAEEDA;color:#633806">2</div>
+                <div><div class="llma-step-t">Benchmark qualité YAML</div><div class="llma-step-d">Teste chaque nouveau modèle sur une spec BIAT standard — score 0-100 sur 10 critères</div></div>
+              </div>
+              <div class="llma-step">
+                <div class="llma-step-n" style="background:#E1F5EE;color:#085041">3</div>
+                <div><div class="llma-step-t">Basculement automatique</div><div class="llma-step-d">Score nouveau > actuel → llm_config.json mis à jour → MoE bascule immédiatement</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="llm-section-card" *ngIf="llmLogs.length > 0">
+            <div class="llm-section-header">
+              <span class="llm-section-title">Journal de découverte</span>
+            </div>
+            <div class="llm-log-wrap">
+              <div class="llm-log-item" *ngFor="let l of llmLogs | slice:0:8"
+                   [style.background]="l.event==='UPGRADE'?'rgba(29,158,117,.04)':'transparent'">
+                <span class="llm-log-time">{{l.created_at | date:'dd/MM HH:mm'}}</span>
+                <span class="llm-log-event"
+                      [class.ev-upgrade]="l.event==='UPGRADE'"
+                      [class.ev-detect]="l.event==='DETECTED'"
+                      [class.ev-test]="l.event==='TEST'">
+                  {{l.event==='UPGRADE'?'🚀 UPGRADE':l.event==='DETECTED'?'✨ NEW':l.event}}
+                </span>
+                <span class="llm-log-msg">{{l.details}}</span>
+              </div>
+            </div>
           </div>
         </div>
 
       </div>
+    </div>
 
-      <!-- Actions HITL -->
-      <div class="report-section report-hitl" *ngIf="audit.status==='FAILED'||audit.status==='PENDING'||audit.status==='HUMAN_APPROVED'||audit.status==='HUMAN_REJECTED'">
+  </div>
+</div>
 
-        <div class="report-section-title" style="margin-bottom:14px">
-          <i class="pi pi-user-edit" style="color:#f59e0b;font-size:14px"></i>
-          Validation humaine (HITL)
-          <span style="margin-left:auto;font-size:10px;color:#8b949e;font-weight:400">
-            Audit #{{audit.id}} · {{audit.spec_id}}
+<!-- TEMPLATE RAPPORT AUDIT -->
+<ng-template #auditReportTpl let-audit="audit">
+  <div class="report-wrap">
+    <div class="report-header">
+      <div class="report-header-left">
+        <div class="report-origin-badge"
+             [style.background]="audit._origin==='live'?'rgba(192,66,255,0.15)':'rgba(48,54,61,0.5)'"
+             [style.border-color]="audit._origin==='live'?'rgba(192,66,255,0.4)':'#30363d'"
+             [style.color]="audit._origin==='live'?'#c042ff':'#8b949e'">
+          <i class="pi" [class.pi-wifi]="audit._origin==='live'" [class.pi-database]="audit._origin!=='live'" style="font-size:0.55rem"></i>
+          {{audit._origin==='live' ? 'Live' : 'Historique DB'}}
+        </div>
+        <div class="report-icon" [style.background]="getStatusColor(audit.status)+'18'" [style.border-color]="getStatusColor(audit.status)+'50'">
+          <i class="pi pi-file-edit" [style.color]="getStatusColor(audit.status)" style="font-size:1rem"></i>
+        </div>
+        <div class="report-title-block">
+          <h2 class="report-title">{{audit.spec_id}}</h2>
+          <div class="report-meta">
+            <span class="rm-badge rm-id">#{{audit.id}}</span>
+            <span class="rm-badge rm-source">{{audit.source}}</span>
+            <span class="rm-badge rm-date">{{formatDate(audit.timestamp)}}</span>
+          </div>
+        </div>
+      </div>
+      <div class="report-header-right">
+        <!-- Bouton télécharger PDF -->
+        <button class="report-pdf-btn" (click)="downloadPdfReport(audit)"
+                [disabled]="actionLoading===audit.id">
+          <i class="pi pi-file-pdf" style="font-size:13px;color:#f43f5e"></i>
+          Rapport PDF
+        </button>
+        <div class="report-score-ring">
+          <div class="rsr-val" [style.color]="getScoreColor(audit.score??0)">{{audit.score ?? '—'}}</div>
+          <div class="rsr-label">Score</div>
+        </div>
+        <div class="report-score-ring" *ngIf="audit.ai?.rl_final_score">
+          <div class="rsr-val" [style.color]="getScoreColor(audit.ai.rl_final_score)">{{audit.ai.rl_final_score}}</div>
+          <div class="rsr-label">Score RL</div>
+        </div>
+        <div class="report-status-badge" [style.color]="getStatusColor(audit.status)" [style.background]="getStatusColor(audit.status)+'18'" [style.border-color]="getStatusColor(audit.status)+'40'">{{audit.status}}</div>
+      </div>
+    </div>
+
+    <!-- Qdrant -->
+    <div class="report-section" *ngIf="audit.qdrant">
+      <div class="report-section-title">
+        <i class="pi pi-database" style="color:#00f2ff"></i> Qdrant — Déduplication
+        <span class="rst-badge" [style.color]="getQdrantColor(audit.qdrant.level)" [style.background]="getQdrantColor(audit.qdrant.level)+'18'">{{audit.qdrant.level}}</span>
+      </div>
+      <div class="report-qdrant-grid">
+        <div class="rq-card" [style.border-color]="getQdrantColor(audit.qdrant.level)+'50'">
+          <div class="rq-level" [style.color]="getQdrantColor(audit.qdrant.level)">{{audit.qdrant.level}}</div>
+          <div class="rq-desc">{{getQdrantDescription(audit.qdrant.level)}}</div>
+        </div>
+        <div class="rq-card" *ngIf="audit.qdrant.similar_api">
+          <div class="rq-label">API similaire</div>
+          <code class="rq-val">{{audit.qdrant.similar_api}}</code>
+          <div class="rq-similarity" *ngIf="audit.qdrant.similarity">
+            <div class="rqs-bar"><div class="rqs-fill" [style.width]="(audit.qdrant.similarity*100)+'%'" [style.background]="getQdrantColor(audit.qdrant.level)"></div></div>
+            <span [style.color]="getQdrantColor(audit.qdrant.level)">{{(audit.qdrant.similarity*100).toFixed(1)}}%</span>
+          </div>
+        </div>
+        <div class="rq-card" *ngIf="audit.qdrant.rag_count>0">
+          <div class="rq-label">RAG injecté</div>
+          <div class="rq-rag-val">×{{audit.qdrant.rag_count}}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MoE scores -->
+    <div class="report-section" *ngIf="audit.ia_eval">
+      <div class="report-section-title">
+        <i class="pi pi-users" style="color:#c042ff"></i> MoE — Experts IA
+        <span class="rst-model-tag">{{audit.ai?.model || 'gpt-oss-120b'}}</span>
+      </div>
+      <div class="report-moe-grid">
+        <div class="rme-card">
+          <div class="rme-header">
+            <div class="rme-icon" style="background:rgba(192,66,255,0.15);border-color:rgba(192,66,255,0.3)"><i class="pi pi-palette" style="color:#c042ff;font-size:0.85rem"></i></div>
+            <div class="rme-meta"><span class="rme-name">Design</span><span class="rme-desc">REST · Nommage · Structure</span></div>
+            <div class="rme-score" style="color:#c042ff">{{audit.ia_eval.design_score ?? '—'}}<span class="rme-over">/100</span></div>
+          </div>
+          <div class="rme-bar"><div class="rme-fill" style="background:#c042ff" [style.width]="(audit.ia_eval.design_score??0)+'%'"></div></div>
+        </div>
+        <div class="rme-card">
+          <div class="rme-header">
+            <div class="rme-icon" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3)"><i class="pi pi-shield" style="color:#f59e0b;font-size:0.85rem"></i></div>
+            <div class="rme-meta"><span class="rme-name">Security</span><span class="rme-desc">OWASP · Auth</span></div>
+            <div class="rme-score" style="color:#f59e0b">{{audit.ia_eval.security_score ?? '—'}}<span class="rme-over">/100</span></div>
+          </div>
+          <div class="rme-bar"><div class="rme-fill" style="background:#f59e0b" [style.width]="(audit.ia_eval.security_score??0)+'%'"></div></div>
+        </div>
+        <div class="rme-card">
+          <div class="rme-header">
+            <div class="rme-icon" style="background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.3)"><i class="pi pi-building" style="color:#22c55e;font-size:0.85rem"></i></div>
+            <div class="rme-meta"><span class="rme-name">BIAT Policy</span><span class="rme-desc">WSO2 · Standards</span></div>
+            <div class="rme-score" style="color:#22c55e">{{audit.ia_eval.chairman_score ?? '—'}}<span class="rme-over">/100</span></div>
+          </div>
+          <div class="rme-bar"><div class="rme-fill" style="background:#22c55e" [style.width]="(audit.ia_eval.chairman_score??0)+'%'"></div></div>
+        </div>
+      </div>
+
+      <!-- Latences -->
+      <div class="report-latencies" *ngIf="audit.ia_eval.latency_ms">
+        <div class="rla-title">Temps de traitement par expert</div>
+        <div class="rla-row" *ngFor="let stage of ['design','security','biat']">
+          <span class="rla-name">{{stage}}</span>
+          <div class="rla-bar"><div class="rla-fill" [style.width]="((audit.ia_eval.latency_ms[stage]||0)/15000*100)+'%'" [style.background]="stage==='design'?'#c042ff':stage==='security'?'#f59e0b':'#22c55e'"></div></div>
+          <span class="rla-val">{{audit.ia_eval.latency_ms[stage]?(audit.ia_eval.latency_ms[stage]/1000).toFixed(1)+'s':'—'}}</span>
+        </div>
+      </div>
+
+      <!-- Score RL final -->
+      <div class="report-rl-score" *ngIf="audit.ai?.rl_final_score">
+        <div class="rrs-left">
+          <i class="pi pi-sliders-h" style="color:#c042ff;font-size:0.85rem"></i>
+          <span class="rrs-label">Score RL Final — {{audit.ai?.model || 'gpt-oss-120b'}}</span>
+        </div>
+        <div class="rrs-val" [style.color]="getScoreColor(audit.ai.rl_final_score)">
+          {{audit.ai.rl_final_score}}<span style="font-size:0.7rem;color:#8b949e">/100</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- YAML corrigé par l'IA — vue améliorée -->
+    <div class="report-section" *ngIf="audit.corrected_yaml || audit.ai?.corrected_yaml">
+      <div class="report-section-title">
+        <i class="pi pi-file-edit" style="color:#22c55e"></i> YAML corrigé par l'IA
+        <span class="rst-badge" style="color:#22c55e;background:rgba(34,197,94,0.12)">Prêt WSO2</span>
+        <span class="rst-badge" style="color:#00f2ff;background:rgba(0,242,255,0.1);margin-left:4px">
+          {{audit.ai?.model || 'gpt-oss-120b'}}
+        </span>
+      </div>
+
+      <!-- Résumé des corrections appliquées -->
+      <div class="corrections-summary" *ngIf="audit.ai_analysis?.improvement">
+        <div class="cs-item">
+          <i class="pi pi-arrow-up" style="color:#22c55e;font-size:0.7rem"></i>
+          <span>Design</span>
+          <span class="cs-delta" style="color:#22c55e">
+            {{audit.ai_analysis.scores_before?.design}} → {{audit.ai_analysis.scores_after?.design}}/100
           </span>
         </div>
-
-        <!-- Boutons d'action -->
-        <div class="hitl-actions">
-          <button class="hitl-btn hitl-approve"
-                  (click)="approveAudit(audit)"
-                  [disabled]="actionLoading===audit.id || audit.status==='HUMAN_APPROVED'">
-            <i class="pi pi-check" [class.pi-spin]="actionLoading===audit.id"></i>
-            {{audit.status==='HUMAN_APPROVED' ? '✅ Approuvé' : 'Approuver → WSO2'}}
-          </button>
-          <button class="hitl-btn hitl-reject"
-                  (click)="rejectAudit(audit)"
-                  [disabled]="actionLoading===audit.id || audit.status==='HUMAN_REJECTED'">
-            <i class="pi pi-times"></i>
-            Rejeter
-          </button>
-          <button class="hitl-btn hitl-jira"
-                  *ngIf="audit.jira_key"
-                  (click)="closeJiraTicket(audit, 'done')"
-                  [disabled]="actionLoading===audit.id">
-            <i class="pi pi-ticket"></i>
-            Fermer ticket {{audit.jira_key}}
-          </button>
+        <div class="cs-item">
+          <i class="pi pi-arrow-up" style="color:#f59e0b;font-size:0.7rem"></i>
+          <span>Security</span>
+          <span class="cs-delta" style="color:#f59e0b">
+            {{audit.ai_analysis.scores_before?.security}} → {{audit.ai_analysis.scores_after?.security}}/100
+          </span>
         </div>
+        <div class="cs-item cs-auto" *ngIf="audit.ai_analysis?.auto_corrections?.length">
+          <i class="pi pi-check-circle" style="color:#22c55e;font-size:0.7rem"></i>
+          <span>{{audit.ai_analysis.auto_corrections?.length || 0}} corrections auto appliquées</span>
+        </div>
+      </div>
 
+      <!-- Viewer YAML avec tabs Original / Corrigé -->
+      <div class="yaml-tabs">
+        <button class="yaml-tab" [class.yaml-tab-active]="yamlView!=='diff'"
+                (click)="yamlView='corrected'">
+          <i class="pi pi-check-circle" style="font-size:0.65rem;color:#22c55e"></i> Corrigé
+        </button>
+        <button class="yaml-tab" [class.yaml-tab-active]="yamlView==='diff'"
+                (click)="yamlView='diff'">
+          <i class="pi pi-sliders-h" style="font-size:0.65rem;color:#f59e0b"></i> Changements
+        </button>
+      </div>
 
-        <!-- WSO2 Publication Panel -->
-        <div class="wso2-pub-panel" *ngIf="audit.status==='HUMAN_APPROVED' || audit.status==='PUBLISHED' || audit.status==='HUMAN_APPROVED' || audit.ai_analysis?.wso2_api_id || audit.wso2_api_id || audit.wso2_published">
-          <!-- Alerte doublon fonctionnel -->
-          <div class="wso2-duplicate-alert" *ngIf="_wso2DuplicateAlert?.show">
-            <div class="wso2-dup-header">
-              <span>⚠️</span>
-              <strong>Doublon fonctionnel détecté</strong>
-              <button class="wso2-dup-close" (click)="_wso2DuplicateAlert=null">✕</button>
-            </div>
-            <div class="wso2-dup-body">
-              <div>API existante sur WSO2 : <span class="wso2-dup-name">{{_wso2DuplicateAlert?.existing_name}} v{{_wso2DuplicateAlert?.existing_ver}}</span></div>
-              <div>Ticket Jira créé : <span class="wso2-dup-ticket">{{_wso2DuplicateAlert?.jira_ticket}}</span></div>
-              <div class="wso2-dup-actions">
-                <a [href]="_wso2DuplicateAlert?.wso2_url" target="_blank" class="wso2-dup-link">🔗 Voir sur WSO2</a>
-                <span class="wso2-dup-hint">💡 Recommandation : incrémenter la version (ex: v2.0.0)</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="wso2-pub-header">
-            <div class="wso2-pub-title">
-              <span style="font-size:16px">🚀</span>
-              Publication WSO2 API Manager
-            </div>
-            <span class="wso2-badge"
-                  [class.wso2-badge-pub]="audit.status==='PUBLISHED' || audit.ai_analysis?.wso2_status==='PUBLISHED' || audit.ai_analysis?.wso2_api_id"
-                  [class.wso2-badge-sim]="audit.ai_analysis?.wso2_status==='PUBLISHED_SIMULATED'">
-              <span class="wso2-dot"></span>
-              {{audit.ai_analysis?.wso2_status || audit.status || 'PUBLISHED'}}
-            </span>
-          </div>
-
-          <!-- Lifecycle -->
-          <div class="wso2-lifecycle">
-            <div class="wso2-lc-step">
-              <div class="wso2-lc-circle wso2-lc-done">✓</div>
-              <div class="wso2-lc-label">HITL</div>
-            </div>
-            <div class="wso2-lc-line"></div>
-            <div class="wso2-lc-step">
-              <div class="wso2-lc-circle wso2-lc-done">✓</div>
-              <div class="wso2-lc-label">Créé</div>
-            </div>
-            <div class="wso2-lc-line"></div>
-            <div class="wso2-lc-step">
-              <div class="wso2-lc-circle wso2-lc-done">✓</div>
-              <div class="wso2-lc-label">Déployé</div>
-            </div>
-            <div class="wso2-lc-line"></div>
-            <div class="wso2-lc-step">
-              <div class="wso2-lc-circle wso2-lc-done">🌐</div>
-              <div class="wso2-lc-label">Publié</div>
-            </div>
-          </div>
-
-          <!-- Info grid -->
-          <div class="wso2-info-grid">
-            <div class="wso2-info-item">
-              <div class="wso2-info-label">API</div>
-              <div class="wso2-info-value" style="color:#22c55e">{{audit.spec_id?.replace('.yaml','')}}</div>
-            </div>
-            <div class="wso2-info-item">
-              <div class="wso2-info-label">WSO2 ID</div>
-              <div class="wso2-info-value">{{(audit.wso2_api_id || audit.ai_analysis?.wso2_api_id || '—') | slice:0:18}}...</div>
-            </div>
-            <div class="wso2-info-item">
-              <div class="wso2-info-label">Score RL</div>
-              <div class="wso2-info-value" style="color:#22c55e">{{audit.ai_analysis?.rl_final_score || audit.ai?.rl_final_score || audit.score_rl || '98'}}/100</div>
-            </div>
-            <div class="wso2-info-item">
-              <div class="wso2-info-label">Security</div>
-              <div class="wso2-info-value">OAuth2</div>
-            </div>
-          </div>
-
-          <!-- Links -->
-          <div class="wso2-links">
-            <a class="wso2-link wso2-link-pub" href="https://localhost:9443/publisher/apis" target="_blank">
-              🔗 Publisher
-            </a>
-            <a class="wso2-link wso2-link-dev" href="https://localhost:9443/devportal/apis" target="_blank">
-              🛒 Dev Portal
-            </a>
+      <div class="yaml-viewer-wrap">
+        <div class="yaml-viewer-header">
+          <span class="yaml-viewer-name">
+            <i class="pi pi-file" style="font-size:0.7rem"></i>
+            {{audit.spec_id}}_corrected.yaml
+          </span>
+          <div style="display:flex;gap:6px">
+            <button class="yaml-copy-btn" (click)="copyYaml(audit)">
+              <i class="pi pi-copy"></i> Copier
+            </button>
+            <button class="yaml-download-btn" (click)="downloadYaml(audit)">
+              <i class="pi pi-download"></i> Télécharger
+            </button>
           </div>
         </div>
 
-        <!-- Feedback RL -->
-        <div class="hitl-feedback" *ngIf="audit.ai?.ia_eval || audit.ai_analysis?.ia_eval">
-          <span class="hitl-feedback-label">Feedback RL :</span>
-          <button class="fb-btn fb-pos" title="Design +" (click)="sendFeedback(audit,'design',1)">D+</button>
-          <button class="fb-btn fb-neg" title="Design -" (click)="sendFeedback(audit,'design',-1)">D-</button>
-          <button class="fb-btn fb-pos" title="Security +" (click)="sendFeedback(audit,'security',1)">S+</button>
-          <button class="fb-btn fb-neg" title="Security -" (click)="sendFeedback(audit,'security',-1)">S-</button>
-          <button class="fb-btn fb-pos" title="BIAT +" (click)="sendFeedback(audit,'chairman',1)">B+</button>
-          <button class="fb-btn fb-neg" title="BIAT -" (click)="sendFeedback(audit,'chairman',-1)">B-</button>
+        <!-- Vue corrigée normale -->
+        <pre class="yaml-viewer-content custom-scroll"
+             *ngIf="yamlView !== 'diff'">{{audit.corrected_yaml || audit.ai?.corrected_yaml}}</pre>
+
+        <!-- Vue diff — lignes ajoutées en vert -->
+        <div class="yaml-diff-viewer custom-scroll" *ngIf="yamlView === 'diff'">
+          <div *ngFor="let line of getDiffLines(audit)"
+               class="diff-line"
+               [class.diff-added]="line.type==='added'"
+               [class.diff-removed]="line.type==='removed'"
+               [class.diff-normal]="line.type==='normal'">
+            <span class="diff-marker">{{line.type==='added' ? '+' : line.type==='removed' ? '-' : ' '}}</span>
+            <code class="diff-code">{{line.content}}</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions HITL -->
+    <!-- Testing Pipeline — Live Monitor -->
+    <div class="report-section testing-monitor-section" *ngIf="audit.ai?.testing_pipeline || audit.testing_pipeline || audit.ai_analysis?.testing_pipeline">
+
+      <!-- Header -->
+      <div class="tm-header">
+        <div class="tm-title">
+          <i class="pi pi-check-square" style="font-size:15px"></i>
+          Testing pipeline — Dredd + Schemathesis
+          <span class="tm-live-dot" [class.tm-dot-pass]="getTestStatus(audit)==='TESTS_PASSED'" [class.tm-dot-fail]="getTestStatus(audit)==='FAILED'"></span>
+        </div>
+        <span class="tm-badge"
+              [class.tm-badge-pass]="getTestStatus(audit)==='TESTS_PASSED'"
+              [class.tm-badge-fail]="getTestStatus(audit)==='FAILED'"
+              [class.tm-badge-idle]="getTestStatus(audit)==='NOT_TESTED'">
+          {{getTestStatus(audit)}}
+        </span>
+      </div>
+
+      <!-- Métriques -->
+      <div class="tm-metrics">
+        <div class="tm-metric">
+          <div class="tm-metric-val">{{getTestSummary(audit)?.total_tests ?? 0}}</div>
+          <div class="tm-metric-lbl">Tests total</div>
+        </div>
+        <div class="tm-metric">
+          <div class="tm-metric-val" style="color:#22c55e">{{getTestSummary(audit)?.total_passed ?? 0}}</div>
+          <div class="tm-metric-lbl">Passed</div>
+        </div>
+        <div class="tm-metric">
+          <div class="tm-metric-val" style="color:#f43f5e">{{getTestSummary(audit)?.total_failed ?? 0}}</div>
+          <div class="tm-metric-lbl">Failed</div>
+        </div>
+        <div class="tm-metric">
+          <div class="tm-metric-val" [style.color]="(getTestSummary(audit)?.pass_rate ?? 0) >= 75 ? '#22c55e' : '#f43f5e'">
+            {{getTestSummary(audit)?.pass_rate ?? 0}}%
+          </div>
+          <div class="tm-metric-lbl">Pass rate</div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="tm-progress-wrap">
+        <div class="tm-progress-label">
+          <span>{{getTestStatus(audit) === 'TESTS_PASSED' ? 'Tests terminés — en attente HITL' : getTestStatus(audit) === 'FAILED' ? 'Tests échoués — corrections requises' : 'En attente...'}}</span>
+          <span>{{getTestSummary(audit)?.pass_rate ?? 0}}%</span>
+        </div>
+        <div class="tm-progress-bar">
+          <div class="tm-progress-fill"
+               [style.width]="(getTestSummary(audit)?.pass_rate ?? 0) + '%'"
+               [style.background]="(getTestSummary(audit)?.pass_rate ?? 0) >= 75 ? '#22c55e' : '#f43f5e'">
+          </div>
+        </div>
+      </div>
+
+      <!-- Steps pipeline -->
+      <div class="tm-pipeline">
+
+        <!-- Step Prism -->
+        <div class="tm-step">
+          <div class="tm-step-icon" [class.tm-icon-pass]="true">
+            <i class="pi pi-server" style="font-size:13px"></i>
+          </div>
+          <div class="tm-step-body">
+            <div class="tm-step-name">Prism mock server</div>
+            <div class="tm-step-sub">Serveur mock OpenAPI · endpoints exposés</div>
+            <div class="tm-step-detail">{{getTestData(audit,'dredd')?.total ?? 0}} endpoint(s) testés</div>
+          </div>
+          <div class="tm-step-time">auto</div>
+        </div>
+
+        <!-- Step Dredd -->
+        <div class="tm-step">
+          <div class="tm-step-icon"
+               [class.tm-icon-pass]="getTestData(audit,'dredd')?.passed"
+               [class.tm-icon-fail]="!getTestData(audit,'dredd')?.passed && getTestData(audit,'dredd') !== null">
+            <i class="pi pi-check-circle" *ngIf="getTestData(audit,'dredd')?.passed" style="font-size:13px"></i>
+            <i class="pi pi-times-circle" *ngIf="!getTestData(audit,'dredd')?.passed && getTestData(audit,'dredd') !== null" style="font-size:13px"></i>
+            <i class="pi pi-circle" *ngIf="getTestData(audit,'dredd') === null" style="font-size:13px"></i>
+          </div>
+          <div class="tm-step-body">
+            <div class="tm-step-name">Dredd — contract testing</div>
+            <div class="tm-step-sub">Validation contrat OpenAPI · status codes · headers</div>
+            <div class="tm-step-detail">
+              {{getTestData(audit,'dredd')?.passed_count ?? 0}}/{{getTestData(audit,'dredd')?.total ?? 0}} endpoints
+              · {{getTestData(audit,'dredd')?.duration_ms ?? 0}}ms
+            </div>
+          </div>
+          <div class="tm-step-time"
+               [style.color]="getTestData(audit,'dredd')?.passed ? '#22c55e' : '#f43f5e'">
+            {{getTestData(audit,'dredd')?.passed ? 'PASSED' : 'FAILED'}}
+          </div>
+        </div>
+
+        <!-- Step Schemathesis -->
+        <div class="tm-step">
+          <div class="tm-step-icon"
+               [class.tm-icon-pass]="getTestData(audit,'schemathesis')?.passed"
+               [class.tm-icon-fail]="!getTestData(audit,'schemathesis')?.passed && getTestData(audit,'schemathesis') !== null">
+            <i class="pi pi-check-circle" *ngIf="getTestData(audit,'schemathesis')?.passed" style="font-size:13px"></i>
+            <i class="pi pi-times-circle" *ngIf="!getTestData(audit,'schemathesis')?.passed && getTestData(audit,'schemathesis') !== null" style="font-size:13px"></i>
+            <i class="pi pi-circle" *ngIf="getTestData(audit,'schemathesis') === null" style="font-size:13px"></i>
+          </div>
+          <div class="tm-step-body">
+            <div class="tm-step-name">Schemathesis — fuzzing</div>
+            <div class="tm-step-sub">Property-based testing · types · contraintes · edge cases</div>
+            <div class="tm-step-detail">
+              {{getTestData(audit,'schemathesis')?.passed_count ?? 0}}/{{getTestData(audit,'schemathesis')?.total ?? 0}} schemas
+              · {{getTestData(audit,'schemathesis')?.duration_ms ?? 0}}ms
+            </div>
+          </div>
+          <div class="tm-step-time"
+               [style.color]="getTestData(audit,'schemathesis')?.passed ? '#22c55e' : '#f43f5e'">
+            {{getTestData(audit,'schemathesis')?.passed ? 'PASSED' : 'FAILED'}}
+          </div>
+        </div>
+
+        <!-- Step Result -->
+        <div class="tm-step tm-step-last">
+          <div class="tm-step-icon"
+               [class.tm-icon-pass]="getTestStatus(audit)==='TESTS_PASSED'"
+               [class.tm-icon-fail]="getTestStatus(audit)==='FAILED'"
+               [class.tm-icon-wait]="getTestStatus(audit)==='NOT_TESTED'">
+            <i class="pi pi-flag" style="font-size:13px"></i>
+          </div>
+          <div class="tm-step-body">
+            <div class="tm-step-name">Décision finale</div>
+            <div class="tm-step-sub" [style.color]="getTestStatus(audit)==='TESTS_PASSED' ? '#22c55e' : '#f43f5e'">
+              {{getTestStatus(audit)==='TESTS_PASSED' ? 'Prêt pour validation HITL admin BIAT' : 'Corrections requises avant HITL'}}
+            </div>
+          </div>
+          <div class="tm-step-time"></div>
         </div>
 
       </div>
 
+      <!-- Failures -->
+      <div class="tm-failures" *ngIf="(getTestSummary(audit)?.all_failures?.length ?? 0) > 0">
+        <div class="tm-failures-title">
+          <i class="pi pi-exclamation-triangle" style="font-size:12px"></i>
+          Violations détectées :
+        </div>
+        <div class="tm-failure-item" *ngFor="let f of getTestSummary(audit)?.all_failures?.slice(0,3)">
+          <span class="tm-fail-method" *ngIf="f.method">{{f.method}}</span>
+          <span class="tm-fail-endpoint" *ngIf="f.endpoint">{{f.endpoint}}</span>
+          <span class="tm-fail-msg">{{f.message}}</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="tm-actions">
+        <button class="tm-btn-rerun" (click)="rerunTests(audit)"
+                [disabled]="actionLoading===audit.id">
+          <i class="pi pi-refresh" [class.pi-spin]="actionLoading===audit.id"></i>
+          Relancer les tests
+        </button>
+        <button class="tm-btn-recorrect"
+                *ngIf="getTestStatus(audit)==='TESTS_FAILED' || getTestStatus(audit)==='FAILED'"
+                (click)="recorrectAndRetest(audit)"
+                [disabled]="actionLoading===audit.id">
+          <i class="pi pi-sparkles" [class.pi-spin]="actionLoading===audit.id"></i>
+          🔄 Recorriger + Retester
+        </button>
+      </div>
+
+      <!-- Cycle counter amélioré -->
+      <div class="tm-recorrect-banner"
+           *ngIf="(audit.ai_analysis?.recorrect_cycles || audit.ai?.recorrect_cycles) > 0">
+        <div class="tm-recorrect-left">
+          <span class="tm-recorrect-icon">🔄</span>
+          <div>
+            <div class="tm-recorrect-title">
+              Cycle de recorrection
+              <span class="tm-recorrect-num">
+                #{{audit.ai_analysis?.recorrect_cycles || audit.ai?.recorrect_cycles}}
+              </span>
+            </div>
+            <div class="tm-recorrect-sub">
+              Violations Schemathesis injectées dans le prompt MoE · YAML amélioré automatiquement
+            </div>
+          </div>
+        </div>
+        <div class="tm-recorrect-result"
+             [style.color]="getTestStatus(audit)==='TESTS_PASSED'?'#22c55e':'#f59e0b'">
+          {{getTestStatus(audit)==='TESTS_PASSED' ? '✓ TESTS_PASSED' : '⚠ En cours...'}}
+        </div>
+      </div>
 
     </div>
 
-  </ng-template>
+    <!-- Actions HITL -->
+    <div class="report-section report-hitl" *ngIf="audit.status==='FAILED'||audit.status==='PENDING'||audit.status==='HUMAN_APPROVED'||audit.status==='HUMAN_REJECTED'">
+
+      <div class="report-section-title" style="margin-bottom:14px">
+        <i class="pi pi-user-edit" style="color:#f59e0b;font-size:14px"></i>
+        Validation humaine (HITL)
+        <span style="margin-left:auto;font-size:10px;color:#8b949e;font-weight:400">
+          Audit #{{audit.id}} · {{audit.spec_id}}
+        </span>
+      </div>
+
+      <!-- Boutons d'action -->
+      <div class="hitl-actions">
+        <button class="hitl-btn hitl-approve"
+                (click)="approveAudit(audit)"
+                [disabled]="actionLoading===audit.id || audit.status==='HUMAN_APPROVED'">
+          <i class="pi pi-check" [class.pi-spin]="actionLoading===audit.id"></i>
+          {{audit.status==='HUMAN_APPROVED' ? '✅ Approuvé' : 'Approuver → WSO2'}}
+        </button>
+        <button class="hitl-btn hitl-reject"
+                (click)="rejectAudit(audit)"
+                [disabled]="actionLoading===audit.id || audit.status==='HUMAN_REJECTED'">
+          <i class="pi pi-times"></i>
+          Rejeter
+        </button>
+        <button class="hitl-btn hitl-jira"
+                *ngIf="audit.jira_key"
+                (click)="closeJiraTicket(audit, 'done')"
+                [disabled]="actionLoading===audit.id">
+          <i class="pi pi-ticket"></i>
+          Fermer ticket {{audit.jira_key}}
+        </button>
+      </div>
+
+
+      <!-- WSO2 Publication Panel -->
+      <div class="wso2-pub-panel" *ngIf="audit.status==='HUMAN_APPROVED' || audit.status==='PUBLISHED' || audit.status==='HUMAN_APPROVED' || audit.ai_analysis?.wso2_api_id || audit.wso2_api_id || audit.wso2_published">
+        <!-- Alerte doublon fonctionnel -->
+        <div class="wso2-duplicate-alert" *ngIf="_wso2DuplicateAlert?.show">
+          <div class="wso2-dup-header">
+            <span>⚠️</span>
+            <strong>Doublon fonctionnel détecté</strong>
+            <button class="wso2-dup-close" (click)="_wso2DuplicateAlert=null">✕</button>
+          </div>
+          <div class="wso2-dup-body">
+            <div>API existante sur WSO2 : <span class="wso2-dup-name">{{_wso2DuplicateAlert?.existing_name}} v{{_wso2DuplicateAlert?.existing_ver}}</span></div>
+            <div>Ticket Jira créé : <span class="wso2-dup-ticket">{{_wso2DuplicateAlert?.jira_ticket}}</span></div>
+            <div class="wso2-dup-actions">
+              <a [href]="_wso2DuplicateAlert?.wso2_url" target="_blank" class="wso2-dup-link">🔗 Voir sur WSO2</a>
+              <span class="wso2-dup-hint">💡 Recommandation : incrémenter la version (ex: v2.0.0)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="wso2-pub-header">
+          <div class="wso2-pub-title">
+            <span style="font-size:16px">🚀</span>
+            Publication WSO2 API Manager
+          </div>
+          <span class="wso2-badge"
+                [class.wso2-badge-pub]="audit.status==='PUBLISHED' || audit.ai_analysis?.wso2_status==='PUBLISHED' || audit.ai_analysis?.wso2_api_id"
+                [class.wso2-badge-sim]="audit.ai_analysis?.wso2_status==='PUBLISHED_SIMULATED'">
+            <span class="wso2-dot"></span>
+            {{audit.ai_analysis?.wso2_status || audit.status || 'PUBLISHED'}}
+          </span>
+        </div>
+
+        <!-- Lifecycle -->
+        <div class="wso2-lifecycle">
+          <div class="wso2-lc-step">
+            <div class="wso2-lc-circle wso2-lc-done">✓</div>
+            <div class="wso2-lc-label">HITL</div>
+          </div>
+          <div class="wso2-lc-line"></div>
+          <div class="wso2-lc-step">
+            <div class="wso2-lc-circle wso2-lc-done">✓</div>
+            <div class="wso2-lc-label">Créé</div>
+          </div>
+          <div class="wso2-lc-line"></div>
+          <div class="wso2-lc-step">
+            <div class="wso2-lc-circle wso2-lc-done">✓</div>
+            <div class="wso2-lc-label">Déployé</div>
+          </div>
+          <div class="wso2-lc-line"></div>
+          <div class="wso2-lc-step">
+            <div class="wso2-lc-circle wso2-lc-done">🌐</div>
+            <div class="wso2-lc-label">Publié</div>
+          </div>
+        </div>
+
+        <!-- Info grid -->
+        <div class="wso2-info-grid">
+          <div class="wso2-info-item">
+            <div class="wso2-info-label">API</div>
+            <div class="wso2-info-value" style="color:#22c55e">{{audit.spec_id?.replace('.yaml','')}}</div>
+          </div>
+          <div class="wso2-info-item">
+            <div class="wso2-info-label">WSO2 ID</div>
+            <div class="wso2-info-value">{{(audit.wso2_api_id || audit.ai_analysis?.wso2_api_id || '—') | slice:0:18}}...</div>
+          </div>
+          <div class="wso2-info-item">
+            <div class="wso2-info-label">Score RL</div>
+            <div class="wso2-info-value" style="color:#22c55e">{{audit.ai_analysis?.rl_final_score || audit.ai?.rl_final_score || audit.score_rl || '98'}}/100</div>
+          </div>
+          <div class="wso2-info-item">
+            <div class="wso2-info-label">Security</div>
+            <div class="wso2-info-value">OAuth2</div>
+          </div>
+        </div>
+
+        <!-- Links -->
+        <div class="wso2-links">
+          <a class="wso2-link wso2-link-pub" href="https://localhost:9443/publisher/apis" target="_blank">
+            🔗 Publisher
+          </a>
+          <a class="wso2-link wso2-link-dev" href="https://localhost:9443/devportal/apis" target="_blank">
+            🛒 Dev Portal
+          </a>
+        </div>
+      </div>
+
+      <!-- Feedback RL -->
+      <div class="hitl-feedback" *ngIf="audit.ai?.ia_eval || audit.ai_analysis?.ia_eval">
+        <span class="hitl-feedback-label">Feedback RL :</span>
+        <button class="fb-btn fb-pos" title="Design +" (click)="sendFeedback(audit,'design',1)">D+</button>
+        <button class="fb-btn fb-neg" title="Design -" (click)="sendFeedback(audit,'design',-1)">D-</button>
+        <button class="fb-btn fb-pos" title="Security +" (click)="sendFeedback(audit,'security',1)">S+</button>
+        <button class="fb-btn fb-neg" title="Security -" (click)="sendFeedback(audit,'security',-1)">S-</button>
+        <button class="fb-btn fb-pos" title="BIAT +" (click)="sendFeedback(audit,'chairman',1)">B+</button>
+        <button class="fb-btn fb-neg" title="BIAT -" (click)="sendFeedback(audit,'chairman',-1)">B-</button>
+      </div>
+
+    </div>
+
+
+  </div>
+
+</ng-template>
